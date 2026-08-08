@@ -451,8 +451,25 @@ function incrementStats(amount) {
 // ---------- BOOKINGS ----------
 
 app.post('/bookings', optionalAuth, (req, res) => {
-  const { name, email, phone, city, package: pkg, total, paymentMethod } = req.body;
+  const { name, email, phone, city, package: pkg, total, paymentMethod, referralCode } = req.body;
   if (!name || !total) return res.status(400).json({ error: 'name and total are required' });
+
+  // Look up the partner by code, if one was entered. Invalid/typo'd codes are stored
+  // as-is for later review, but don't block checkout or attach a fee.
+  let partnerId = null;
+  let partnerFeeOwed = 0;
+  if (referralCode) {
+    const partners = db.getPartners();
+    const partner = partners.find(
+      (p) => p.active && p.code.toLowerCase() === String(referralCode).toLowerCase()
+    );
+    if (partner) {
+      partnerId = partner.id;
+      partnerFeeOwed = partner.feeType === 'percent'
+        ? Math.round((total * partner.feeAmount) / 100 * 100) / 100
+        : partner.feeAmount;
+    }
+  }
 
   const bookings = db.getBookings();
   const booking = {
@@ -462,6 +479,10 @@ app.post('/bookings', optionalAuth, (req, res) => {
     package: pkg,
     total,
     paymentMethod: paymentMethod || 'unspecified',
+    referralCode: referralCode || null,
+    partnerId,
+    partnerFeeOwed,
+    partnerFeePaid: false,
     paid: false,
     createdAt: new Date().toISOString(),
   };
@@ -469,6 +490,77 @@ app.post('/bookings', optionalAuth, (req, res) => {
   db.saveBookings(bookings);
 
   res.json({ booking });
+});
+
+// ---------- PARTNERS (admin only) ----------
+
+app.get('/partners', requireAdmin, (req, res) => {
+  const partners = db.getPartners();
+  const bookings = db.getBookings();
+
+  // Attach live totals so the admin dashboard can show exactly what's owed to each partner
+  const withTotals = partners.map((p) => {
+    const theirBookings = bookings.filter((b) => b.partnerId === p.id && b.paid);
+    const totalOwed = theirBookings
+      .filter((b) => !b.partnerFeePaid)
+      .reduce((sum, b) => sum + (b.partnerFeeOwed || 0), 0);
+    const totalPaidOut = theirBookings
+      .filter((b) => b.partnerFeePaid)
+      .reduce((sum, b) => sum + (b.partnerFeeOwed || 0), 0);
+    return { ...p, bookingsSent: theirBookings.length, totalOwed, totalPaidOut };
+  });
+
+  res.json({ partners: withTotals });
+});
+
+app.post('/partners', requireAdmin, (req, res) => {
+  const { name, businessName, code, feeType, feeAmount, city } = req.body;
+  if (!name || !code || !feeAmount) {
+    return res.status(400).json({ error: 'name, code, and feeAmount are required' });
+  }
+
+  const partners = db.getPartners();
+  if (partners.find((p) => p.code.toLowerCase() === code.toLowerCase())) {
+    return res.status(409).json({ error: 'That referral code is already in use' });
+  }
+
+  const partner = {
+    id: 'p_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
+    name,
+    businessName: businessName || '',
+    code: code.toUpperCase(),
+    feeType: feeType === 'percent' ? 'percent' : 'flat', // 'flat' dollar amount or 'percent' of booking total
+    feeAmount: Number(feeAmount),
+    city: city || '',
+    active: true,
+    createdAt: new Date().toISOString(),
+  };
+  partners.push(partner);
+  db.savePartners(partners);
+  res.json({ partner });
+});
+
+app.patch('/partners/:id', requireAdmin, (req, res) => {
+  const partners = db.getPartners();
+  const partner = partners.find((p) => p.id === req.params.id);
+  if (!partner) return res.status(404).json({ error: 'Partner not found' });
+
+  if (typeof req.body.active === 'boolean') partner.active = req.body.active;
+  db.savePartners(partners);
+  res.json({ partner });
+});
+
+// Marks all of a partner's currently-owed fees as paid out — use this after you've
+// actually sent them their money (bank transfer, check, whatever), to reset the running total.
+app.post('/partners/:id/mark-paid', requireAdmin, (req, res) => {
+  const bookings = db.getBookings();
+  bookings.forEach((b) => {
+    if (b.partnerId === req.params.id && b.paid && !b.partnerFeePaid) {
+      b.partnerFeePaid = true;
+    }
+  });
+  db.saveBookings(bookings);
+  res.json({ ok: true });
 });
 
 function markBookingPaid(bookingId) {
