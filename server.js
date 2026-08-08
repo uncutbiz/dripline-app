@@ -492,6 +492,83 @@ app.post('/bookings', optionalAuth, (req, res) => {
   res.json({ booking });
 });
 
+// ---------- PARTNER APPLICATIONS (public submission, admin review) ----------
+// This is the self-serve front door — influencers, hotels, gyms, planners submit
+// themselves instead of you manually creating every partner by hand.
+
+app.post('/partner-applications', (req, res) => {
+  const { name, businessName, type, platform, followers, city, email, phone } = req.body;
+  if (!name || !email) return res.status(400).json({ error: 'name and email are required' });
+
+  const apps = db.getPartnerApplications();
+  const application = {
+    id: 'pa_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
+    name,
+    businessName: businessName || '',
+    type: type || 'other', // 'hotel', 'influencer', 'gym', 'planner', 'other'
+    platform: platform || '',   // e.g. "Instagram", "TikTok" — mainly relevant for influencer type
+    followers: followers || '',
+    city: city || '',
+    email,
+    phone: phone || '',
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+  };
+  apps.push(application);
+  db.savePartnerApplications(apps);
+  res.json({ application });
+});
+
+app.get('/partner-applications', requireAdmin, (req, res) => {
+  const apps = db.getPartnerApplications().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  res.json({ applications: apps });
+});
+
+// Approving turns an application into a real, active Partner with an actual referral code and fee.
+app.post('/partner-applications/:id/approve', requireAdmin, (req, res) => {
+  const { code, feeType, feeAmount } = req.body;
+  if (!code || !feeAmount) return res.status(400).json({ error: 'code and feeAmount are required to approve' });
+
+  const apps = db.getPartnerApplications();
+  const application = apps.find((a) => a.id === req.params.id);
+  if (!application) return res.status(404).json({ error: 'Application not found' });
+
+  const partners = db.getPartners();
+  if (partners.find((p) => p.code.toLowerCase() === code.toLowerCase())) {
+    return res.status(409).json({ error: 'That referral code is already in use' });
+  }
+
+  const partner = {
+    id: 'p_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
+    name: application.name,
+    businessName: application.businessName,
+    code: code.toUpperCase(),
+    feeType: feeType === 'percent' ? 'percent' : 'flat',
+    feeAmount: Number(feeAmount),
+    city: application.city,
+    type: application.type,
+    active: true,
+    createdAt: new Date().toISOString(),
+  };
+  partners.push(partner);
+  db.savePartners(partners);
+
+  application.status = 'approved';
+  db.savePartnerApplications(apps);
+
+  res.json({ partner });
+});
+
+app.post('/partner-applications/:id/reject', requireAdmin, (req, res) => {
+  const apps = db.getPartnerApplications();
+  const application = apps.find((a) => a.id === req.params.id);
+  if (!application) return res.status(404).json({ error: 'Application not found' });
+
+  application.status = 'rejected';
+  db.savePartnerApplications(apps);
+  res.json({ ok: true });
+});
+
 // ---------- PARTNERS (admin only) ----------
 
 app.get('/partners', requireAdmin, (req, res) => {
