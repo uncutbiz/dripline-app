@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DRIPLINE — Admin</title>
+<style>
+  :root{
+    --bg:#0A0E17; --surface:#12182A; --surface-2:#1A2238;
+    --accent:#3FE8D1; --pink:#FF4D8D; --amber:#FFB347;
+    --text:#F5F7FA; --muted:#8A93A6; --border:rgba(255,255,255,0.08); --border-strong:rgba(255,255,255,0.16);
+  }
+  *{box-sizing:border-box;}
+  body{ background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif; margin:0; padding:32px;}
+  h1,h2{ font-family:'Space Grotesk',system-ui,sans-serif;}
+  .wrap{ max-width:1100px; margin:0 auto;}
+  .gate{ max-width:360px; margin:120px auto; text-align:center;}
+  .gate input{ width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); margin:14px 0; font-size:14px;}
+  .gate button, .btn{ background:var(--accent); color:#04120F; border:none; padding:11px 20px; border-radius:8px; font-weight:600; cursor:pointer; font-size:14px;}
+  .btn.secondary{ background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong);}
+  .btn.danger{ background:var(--pink); color:#20040D;}
+  section{ margin-bottom:44px;}
+  table{ width:100%; border-collapse:collapse; font-size:13px;}
+  th{ text-align:left; color:var(--muted); text-transform:uppercase; font-size:11px; letter-spacing:0.06em; padding:10px; border-bottom:1px solid var(--border-strong);}
+  td{ padding:10px; border-bottom:1px solid var(--border);}
+  .status{ padding:3px 10px; border-radius:999px; font-size:11px; font-weight:600; text-transform:uppercase;}
+  .status.pending{ background:rgba(255,179,71,0.15); color:var(--amber);}
+  .status.offered{ background:rgba(255,77,141,0.15); color:var(--pink);}
+  .status.assigned{ background:rgba(63,232,209,0.15); color:var(--accent);}
+  .status.paid{ background:rgba(63,232,209,0.15); color:var(--accent);}
+  .status.completed{ background:rgba(255,255,255,0.1); color:var(--text);}
+  .add-nurse{ display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;}
+  .add-nurse input, .add-nurse select{ padding:9px 12px; border-radius:8px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); font-size:13px;}
+  .stat-cards{ display:flex; gap:16px; margin-bottom:30px;}
+  .stat-card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px 24px; flex:1;}
+  .stat-card .n{ font-size:26px; font-weight:700; font-family:'Space Grotesk',sans-serif; color:var(--accent);}
+  .stat-card .l{ font-size:12px; color:var(--muted); text-transform:uppercase;}
+  .toggle{ cursor:pointer;}
+  #err{ color:var(--pink); font-size:13px; margin-top:8px;}
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <h1>DRIPLINE Admin</h1>
+  <p style="color:var(--muted); font-size:13px;">Enter your admin key to continue.</p>
+  <input type="password" id="adminKeyInput" placeholder="Admin key">
+  <button class="btn" onclick="unlock()">Enter</button>
+  <div id="err"></div>
+</div>
+
+<div class="wrap" id="dashboard" style="display:none;">
+  <h1>DRIPLINE Admin</h1>
+
+  <div class="stat-cards">
+    <div class="stat-card"><div class="n" id="statTotal">$0</div><div class="l">Today's revenue</div></div>
+    <div class="stat-card"><div class="n" id="statCount">0</div><div class="l">Bookings today</div></div>
+    <div class="stat-card"><div class="n" id="statNurses">0</div><div class="l">Active nurses</div></div>
+  </div>
+
+  <section>
+    <h2>Nurses</h2>
+    <div class="add-nurse">
+      <input type="text" id="nurseName" placeholder="Name">
+      <input type="tel" id="nursePhone" placeholder="+1 phone number">
+      <select id="nurseCity">
+        <option>Las Vegas</option><option>Miami</option><option>Nashville</option>
+        <option>Scottsdale</option><option>Austin</option>
+      </select>
+      <button class="btn" onclick="addNurse()">Add nurse</button>
+    </div>
+    <table>
+      <thead><tr><th>Name</th><th>Phone</th><th>PIN</th><th>City</th><th>Status</th><th>Last dispatched</th><th></th></tr></thead>
+      <tbody id="nurseRows"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Partner Applications</h2>
+    <table>
+      <thead><tr><th>Name</th><th>Business/handle</th><th>Type</th><th>Platform</th><th>City</th><th>Email</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody id="applicationRows"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Partners</h2>
+    <div class="add-nurse">
+      <input type="text" id="partnerName" placeholder="Contact name">
+      <input type="text" id="partnerBusiness" placeholder="Business (e.g. Bellagio Concierge)">
+      <input type="text" id="partnerCode" placeholder="Referral code (e.g. BELLAGIO20)">
+      <select id="partnerFeeType">
+        <option value="flat">Flat $ per booking</option>
+        <option value="percent">% of booking</option>
+      </select>
+      <input type="number" id="partnerFeeAmount" placeholder="Amount" style="width:90px;">
+      <button class="btn" onclick="addPartner()">Add partner</button>
+    </div>
+    <table>
+      <thead><tr><th>Business</th><th>Code</th><th>Fee</th><th>Bookings sent</th><th>Owed now</th><th>Paid out</th><th>Status</th><th></th></tr></thead>
+      <tbody id="partnerRows"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Bookings</h2>
+    <table>
+      <thead><tr><th>When</th><th>Customer</th><th>Package</th><th>City</th><th>Total</th><th>Status</th><th>Nurse</th><th>Update</th></tr></thead>
+      <tbody id="bookingRows"></tbody>
+    </table>
+  </section>
+</div>
+
+<script>
+  // Point this at your deployed backend — same URL as in dripline_app.html
+  const BACKEND_URL = "https://dripline-backend-1.onrender.com";
+  let ADMIN_KEY = "";
+
+  function unlock(){
+    ADMIN_KEY = document.getElementById('adminKeyInput').value.trim();
+    if(!ADMIN_KEY){ document.getElementById('err').textContent = 'Enter a key.'; return; }
+    loadAll();
+  }
+
+  function headers(){
+    return { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY };
+  }
+
+  async function loadAll(){
+    // First, confirm we can reach the backend AT ALL and that the admin key is correct,
+    // using the one endpoint every version of the backend definitely has: /nurses.
+    let nurses = [];
+    try{
+      const nursesResp = await fetch(BACKEND_URL + '/nurses', { headers: headers() });
+      if(nursesResp.status === 401){
+        document.getElementById('err').textContent = 'Wrong admin key.';
+        return;
+      }
+      if(!nursesResp.ok) throw new Error('Backend reachable but returned an error on /nurses');
+      const data = await nursesResp.json();
+      nurses = data.nurses;
+    } catch(err){
+      document.getElementById('err').textContent = 'Could not reach the backend at ' + BACKEND_URL + '. Is it deployed and is the URL correct?';
+      console.error(err);
+      return; // genuinely can't reach the backend at all — stop here
+    }
+
+    // We're connected. Show the dashboard now, then load each section independently —
+    // if one section's endpoint is missing or erroring (e.g. an older backend without
+    // the Partners feature yet), the rest of the dashboard still works instead of
+    // the whole page failing.
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    document.getElementById('statNurses').textContent = nurses.filter(n => n.active).length;
+    renderNurses(nurses);
+
+    try{
+      const statsResp = await fetch(BACKEND_URL + '/stats');
+      const stats = await statsResp.json();
+      document.getElementById('statTotal').textContent = '$' + stats.total.toLocaleString();
+      document.getElementById('statCount').textContent = stats.count;
+    } catch(err){
+      console.error('Stats section failed to load:', err);
+    }
+
+    let bookingsForPartners = [];
+    try{
+      const bookingsResp = await fetch(BACKEND_URL + '/admin/bookings', { headers: headers() });
+      const { bookings } = await bookingsResp.json();
+      bookingsForPartners = bookings;
+      renderBookings(bookings, nurses);
+    } catch(err){
+      console.error('Bookings section failed to load:', err);
+      document.getElementById('bookingRows').innerHTML = '<tr><td colspan="8" style="color:var(--muted);">Could not load bookings.</td></tr>';
+    }
+
+    try{
+      const partnersResp = await fetch(BACKEND_URL + '/partners', { headers: headers() });
+      if(!partnersResp.ok) throw new Error('Partners endpoint not available on this backend yet');
+      const { partners } = await partnersResp.json();
+      renderPartners(partners);
+    } catch(err){
+      console.error('Partners section failed to load:', err);
+      document.getElementById('partnerRows').innerHTML = '<tr><td colspan="8" style="color:var(--muted);">Partners feature not available yet — update server.js to enable it.</td></tr>';
+    }
+
+    try{
+      const appsResp = await fetch(BACKEND_URL + '/partner-applications', { headers: headers() });
+      if(!appsResp.ok) throw new Error('Partner applications endpoint not available yet');
+      const { applications } = await appsResp.json();
+      renderApplications(applications);
+    } catch(err){
+      console.error('Partner applications section failed to load:', err);
+      document.getElementById('applicationRows').innerHTML = '<tr><td colspan="8" style="color:var(--muted);">Partner applications feature not available yet — update server.js to enable it.</td></tr>';
+    }
+  }
+
+  function renderNurses(nurses){
+    const rows = document.getElementById('nurseRows');
+    rows.innerHTML = '';
+    nurses.forEach(n => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${n.name}</td>
+        <td>${n.phone}</td>
+        <td style="font-family:monospace; color:var(--amber);">${n.pin || '—'}</td>
+        <td>${n.city}</td>
+        <td><span class="status ${n.active ? 'assigned' : 'completed'}">${n.active ? 'Active' : 'Inactive'}</span></td>
+        <td>${n.lastDispatchedAt ? new Date(n.lastDispatchedAt).toLocaleString() : '—'}</td>
+        <td><button class="btn secondary toggle" onclick="toggleNurse('${n.id}', ${!n.active})">${n.active ? 'Deactivate' : 'Activate'}</button></td>
+      `;
+      rows.appendChild(tr);
+    });
+  }
+
+  function renderBookings(bookings, nurses){
+    const rows = document.getElementById('bookingRows');
+    rows.innerHTML = '';
+    bookings.forEach(b => {
+      const nurse = nurses.find(n => n.id === b.nurseId);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${new Date(b.createdAt).toLocaleString()}</td>
+        <td>${b.name}<br><span style="color:var(--muted); font-size:11px;">${b.email || ''} ${b.phone || ''}</span></td>
+        <td>${b.package}</td>
+        <td>${b.city}</td>
+        <td>$${b.total}</td>
+        <td><span class="status ${b.status || 'pending'}">${b.status || 'pending'}</span></td>
+        <td>${nurse ? nurse.name : '—'}</td>
+        <td>
+          <select onchange="updateStatus('${b.id}', this.value)">
+            <option value="">Change…</option>
+            <option value="assigned">Assigned</option>
+            <option value="en_route">En route</option>
+            <option value="completed">Completed</option>
+          </select>
+        </td>
+      `;
+      rows.appendChild(tr);
+    });
+  }
+
+  function renderApplications(apps){
+    const rows = document.getElementById('applicationRows');
+    rows.innerHTML = '';
+    const pending = apps.filter(a => a.status === 'pending');
+    if(pending.length === 0){
+      rows.innerHTML = '<tr><td colspan="8" style="color:var(--muted);">No pending applications.</td></tr>';
+      return;
+    }
+    pending.forEach(a => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${a.name}</td>
+        <td>${a.businessName || '—'}</td>
+        <td>${a.type}</td>
+        <td>${a.platform ? a.platform + (a.followers ? ' · ' + a.followers : '') : '—'}</td>
+        <td>${a.city || '—'}</td>
+        <td>${a.email}</td>
+        <td><span class="status pending">Pending</span></td>
+        <td style="display:flex; gap:6px;">
+          <button class="btn secondary" onclick="approveApplication('${a.id}')">Approve</button>
+          <button class="btn secondary" onclick="rejectApplication('${a.id}')">Reject</button>
+        </td>
+      `;
+      rows.appendChild(tr);
+    });
+  }
+
+  async function approveApplication(id){
+    const code = prompt('Referral code for this partner (e.g. JESSVEGAS):');
+    if(!code) return;
+    const feeAmount = prompt('Fee per booking — just the number (e.g. 20 for $20 flat, or 10 for 10%):');
+    if(!feeAmount) return;
+    const feeType = confirm('Click OK for a FLAT dollar amount, or Cancel for a PERCENTAGE of the booking.') ? 'flat' : 'percent';
+
+    const resp = await fetch(BACKEND_URL + '/partner-applications/' + id + '/approve', {
+      method:'POST', headers: headers(),
+      body: JSON.stringify({ code, feeType, feeAmount })
+    });
+    const data = await resp.json();
+    if(!resp.ok){ alert(data.error || 'Could not approve.'); return; }
+    alert('Approved — ' + data.partner.name + ' can now use code ' + data.partner.code);
+    loadAll();
+  }
+
+  async function rejectApplication(id){
+    if(!confirm('Reject this application?')) return;
+    await fetch(BACKEND_URL + '/partner-applications/' + id + '/reject', { method:'POST', headers: headers() });
+    loadAll();
+  }
+
+  function renderPartners(partners){
+    const rows = document.getElementById('partnerRows');
+    rows.innerHTML = '';
+    if(partners.length === 0){
+      rows.innerHTML = '<tr><td colspan="8" style="color:var(--muted);">No partners added yet.</td></tr>';
+      return;
+    }
+    partners.forEach(p => {
+      const feeLabel = p.feeType === 'percent' ? p.feeAmount + '%' : '$' + p.feeAmount;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${p.businessName || p.name}</td>
+        <td style="font-family:monospace; color:var(--amber);">${p.code}</td>
+        <td>${feeLabel}</td>
+        <td>${p.bookingsSent}</td>
+        <td style="color:var(--accent); font-weight:600;">$${p.totalOwed.toFixed(2)}</td>
+        <td style="color:var(--muted);">$${p.totalPaidOut.toFixed(2)}</td>
+        <td><span class="status ${p.active ? 'assigned' : 'completed'}">${p.active ? 'Active' : 'Inactive'}</span></td>
+        <td style="display:flex; gap:6px;">
+          <button class="btn secondary toggle" onclick="togglePartner('${p.id}', ${!p.active})">${p.active ? 'Deactivate' : 'Activate'}</button>
+          ${p.totalOwed > 0 ? `<button class="btn secondary" onclick="markPartnerPaid('${p.id}')">Mark paid</button>` : ''}
+        </td>
+      `;
+      rows.appendChild(tr);
+    });
+  }
+
+  async function addPartner(){
+    const name = document.getElementById('partnerName').value.trim();
+    const businessName = document.getElementById('partnerBusiness').value.trim();
+    const code = document.getElementById('partnerCode').value.trim();
+    const feeType = document.getElementById('partnerFeeType').value;
+    const feeAmount = document.getElementById('partnerFeeAmount').value;
+    if(!name || !code || !feeAmount) return alert('Name, code, and fee amount are required.');
+
+    const resp = await fetch(BACKEND_URL + '/partners', {
+      method:'POST', headers: headers(),
+      body: JSON.stringify({ name, businessName, code, feeType, feeAmount })
+    });
+    const data = await resp.json();
+    if(!resp.ok){ alert(data.error || 'Could not add partner.'); return; }
+
+    document.getElementById('partnerName').value = '';
+    document.getElementById('partnerBusiness').value = '';
+    document.getElementById('partnerCode').value = '';
+    document.getElementById('partnerFeeAmount').value = '';
+    loadAll();
+  }
+
+  async function togglePartner(id, active){
+    await fetch(BACKEND_URL + '/partners/' + id, { method:'PATCH', headers: headers(), body: JSON.stringify({active}) });
+    loadAll();
+  }
+
+  async function markPartnerPaid(id){
+    if(!confirm('Mark all currently-owed fees for this partner as paid? Only do this after you\'ve actually sent them the money.')) return;
+    await fetch(BACKEND_URL + '/partners/' + id + '/mark-paid', { method:'POST', headers: headers() });
+    loadAll();
+  }
+
+  async function addNurse(){
+    const name = document.getElementById('nurseName').value.trim();
+    const phone = document.getElementById('nursePhone').value.trim();
+    const city = document.getElementById('nurseCity').value;
+    if(!name || !phone) return alert('Name and phone are required.');
+
+    await fetch(BACKEND_URL + '/nurses', { method:'POST', headers: headers(), body: JSON.stringify({name, phone, city}) });
+    document.getElementById('nurseName').value = '';
+    document.getElementById('nursePhone').value = '';
+    loadAll();
+  }
+
+  async function toggleNurse(id, active){
+    await fetch(BACKEND_URL + '/nurses/' + id, { method:'PATCH', headers: headers(), body: JSON.stringify({active}) });
+    loadAll();
+  }
+
+  async function updateStatus(bookingId, status){
+    if(!status) return;
+    await fetch(BACKEND_URL + '/admin/bookings/' + bookingId, { method:'PATCH', headers: headers(), body: JSON.stringify({status}) });
+    loadAll();
+  }
+
+  // refresh every 20s so the dashboard feels live without a manual reload
+  setInterval(() => { if(ADMIN_KEY) loadAll(); }, 20000);
+</script>
+</body>
+</html>
