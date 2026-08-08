@@ -215,10 +215,10 @@
 
     <div class="tracker">
       <div class="tracker-head">
-        <span class="label"><span class="pulse-dot"></span>Today's bookings — live</span>
+        <span class="label"><span class="pulse-dot"></span>Bookings happening now</span>
       </div>
-      <div class="tracker-num mono">$<span id="trackerAmt">6,420</span></div>
-      <div class="tracker-goal">of <span class="mono">$10,000</span> daily goal · <span id="trackerCount">24</span> bookings so far</div>
+      <div class="tracker-num mono"><span id="trackerCount">24</span> today</div>
+      <div class="tracker-goal">across our 7 markets — book yours in under 60 minutes</div>
       <div class="drip-visual">
         <div class="bag"><div class="bag-cap"></div><div class="bag-fill" id="bagFill"></div></div>
         <div class="stat-cols">
@@ -545,7 +545,6 @@
   }
 
   function updateTracker(){
-    document.getElementById('trackerAmt').textContent = dailyTotal.toLocaleString();
     document.getElementById('trackerCount').textContent = bookingCount;
     let pct = Math.min(100, (dailyTotal/dailyGoal)*100);
     document.getElementById('bagFill').style.height = pct + '%';
@@ -654,7 +653,7 @@
 
       const bookingResp = await fetch(BACKEND_URL + '/bookings', {
         method: 'POST', headers,
-        body: JSON.stringify({ name, email, phone, city, package: pkgLabel, total, paymentMethod: payMethod })
+        body: JSON.stringify({ name, email, phone, city, package: pkgLabel, total, paymentMethod: payMethod, referralCode: document.getElementById('fCode').value.trim() || null })
       });
       if(!bookingResp.ok) throw new Error('Could not create booking on the server');
       const { booking } = await bookingResp.json();
