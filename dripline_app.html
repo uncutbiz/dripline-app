@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DRIPLINE — IV Recovery, Dispatched</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0E17;
+    --surface:#12182A;
+    --surface-2:#1A2238;
+    --accent:#3FE8D1;
+    --accent-dim: rgba(63,232,209,0.14);
+    --pink:#FF4D8D;
+    --pink-dim: rgba(255,77,141,0.14);
+    --amber:#FFB347;
+    --text:#F5F7FA;
+    --muted:#8A93A6;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; scroll-behavior:smooth;}
+  body{ -webkit-font-smoothing:antialiased; padding-bottom:60px;}
+  a{color:inherit; text-decoration:none;}
+  ::selection{ background:var(--accent); color:#04120F;}
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:3px; border-radius:4px;}
+
+  .wrap{ max-width:1180px; margin:0 auto; padding:0 28px;}
+  h1,h2,h3{ font-family:'Space Grotesk',sans-serif; letter-spacing:-0.01em;}
+  .mono{ font-family:'JetBrains Mono',monospace;}
+  .eyebrow{ font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent);}
+
+  /* NAV */
+  nav{ position:sticky; top:0; z-index:50; backdrop-filter:blur(14px); background:rgba(10,14,23,0.78); border-bottom:1px solid var(--border);}
+  .navrow{ display:flex; align-items:center; justify-content:space-between; height:72px;}
+  .logo{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:20px; display:flex; align-items:center; gap:8px;}
+  .logo .dot{ width:9px; height:9px; border-radius:50%; background:var(--accent); box-shadow:0 0 12px var(--accent);}
+  .navlinks{ display:flex; gap:32px; font-size:14px; color:var(--muted);}
+  .navlinks a:hover{ color:var(--text);}
+  .navbtn{ background:var(--accent); color:#04120F; font-weight:600; font-size:14px; padding:10px 20px; border-radius:8px; transition:transform .15s ease, box-shadow .15s ease;}
+  .navbtn:hover{ transform:translateY(-1px); box-shadow:0 6px 20px rgba(63,232,209,0.35);}
+  @media (max-width:820px){ .navlinks{display:none;} }
+
+  /* HERO */
+  .hero{ padding:88px 0 60px; position:relative; overflow:hidden;}
+  .hero::before{ content:""; position:absolute; top:-200px; right:-160px; width:600px; height:600px; background:radial-gradient(circle,var(--accent-dim) 0%, transparent 70%); pointer-events:none;}
+  .hero-grid{ display:grid; grid-template-columns:1.1fr 0.9fr; gap:64px; align-items:center;}
+  @media (max-width:900px){ .hero-grid{ grid-template-columns:1fr;} }
+  .hero h1{ font-size:56px; line-height:1.02; font-weight:700; margin:18px 0 20px;}
+  @media (max-width:560px){ .hero h1{font-size:38px;} }
+  .hero h1 span{ color:var(--accent);}
+  .hero p.lead{ font-size:17px; color:var(--muted); max-width:480px; line-height:1.6; margin-bottom:32px;}
+  .hero-ctas{ display:flex; gap:14px; flex-wrap:wrap;}
+  .btn-primary{ background:var(--accent); color:#04120F; font-weight:600; padding:14px 26px; border-radius:10px; font-size:15px; border:none; cursor:pointer; transition:transform .15s ease, box-shadow .15s ease;}
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 10px 30px rgba(63,232,209,0.3);}
+  .btn-ghost{ background:transparent; color:var(--text); padding:14px 26px; border-radius:10px; font-size:15px; border:1px solid var(--border-strong); cursor:pointer;}
+  .btn-ghost:hover{ border-color:var(--accent); color:var(--accent);}
+
+  .trustbar{ display:flex; gap:28px; margin-top:44px; flex-wrap:wrap;}
+  .trust-item{ font-size:13px; color:var(--muted); display:flex; align-items:center; gap:8px;}
+  .trust-item b{ color:var(--text); font-weight:600;}
+
+  /* SIGNATURE: live drip goal tracker */
+  .tracker{ background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:28px; position:relative;}
+  .tracker-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;}
+  .tracker-head .label{ font-size:12px; text-transform:uppercase; letter-spacing:0.12em; color:var(--muted); font-family:'JetBrains Mono',monospace;}
+  .tracker-num{ font-family:'JetBrains Mono',monospace; font-size:40px; font-weight:700; color:var(--accent);}
+  .tracker-goal{ font-size:13px; color:var(--muted); margin-bottom:20px;}
+  .drip-visual{ display:flex; align-items:flex-end; gap:16px; margin:18px 0 22px;}
+  .bag{ width:64px; height:150px; border:2px solid var(--border-strong); border-radius:10px 10px 26px 26px; position:relative; overflow:hidden; background:var(--surface-2); flex-shrink:0;}
+  .bag-fill{ position:absolute; bottom:0; left:0; width:100%; background:linear-gradient(180deg, var(--accent), #1FA893); transition:height 1.1s cubic-bezier(.4,0,.2,1); height:0%;}
+  .bag-cap{ position:absolute; top:-6px; left:50%; transform:translateX(-50%); width:22px; height:8px; background:var(--border-strong); border-radius:3px;}
+  .stat-cols{ display:flex; flex-direction:column; gap:14px; flex:1;}
+  .stat-row{ display:flex; justify-content:space-between; font-size:13px; padding-bottom:10px; border-bottom:1px solid var(--border);}
+  .stat-row:last-child{ border-bottom:none; padding-bottom:0;}
+  .stat-row .k{ color:var(--muted);}
+  .stat-row .v{ font-family:'JetBrains Mono',monospace; font-weight:600;}
+  .pulse-dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); display:inline-block; margin-right:6px; animation:pulse 1.6s infinite;}
+  @keyframes pulse{ 0%{box-shadow:0 0 0 0 rgba(63,232,209,0.6);} 70%{box-shadow:0 0 0 8px rgba(63,232,209,0);} 100%{box-shadow:0 0 0 0 rgba(63,232,209,0);} }
+
+  /* SECTION generic */
+  section{ padding:80px 0;}
+  .section-head{ margin-bottom:44px; max-width:640px;}
+  .section-head h2{ font-size:34px; margin-top:12px;}
+  .section-head p{ color:var(--muted); margin-top:12px; font-size:15px; line-height:1.6;}
+
+  /* MENU */
+  .menu-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px;}
+  @media (max-width:980px){ .menu-grid{ grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:560px){ .menu-grid{ grid-template-columns:1fr;} }
+  .tier{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:26px 22px; display:flex; flex-direction:column; gap:14px; transition:border-color .2s ease, transform .2s ease;}
+  .tier:hover{ border-color:var(--border-strong); transform:translateY(-3px);}
+  .tier.featured{ border-color:var(--accent); background:linear-gradient(180deg, rgba(63,232,209,0.06), var(--surface));}
+  .tier-num{ font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted);}
+  .tier h3{ font-size:19px;}
+  .tier .price{ font-family:'JetBrains Mono',monospace; font-size:28px; font-weight:700; color:var(--accent);}
+  .tier .price span{ font-size:13px; color:var(--muted); font-weight:400;}
+  .tier ul{ list-style:none; display:flex; flex-direction:column; gap:8px; font-size:13px; color:var(--muted); flex:1;}
+  .tier ul li::before{ content:"—"; margin-right:6px; color:var(--accent);}
+  .tier-tag{ display:inline-block; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; background:var(--pink-dim); color:var(--pink); padding:4px 9px; border-radius:6px; width:fit-content; font-weight:600;}
+  .tier-cta{ margin-top:auto; background:var(--surface-2); border:1px solid var(--border-strong); color:var(--text); padding:11px; border-radius:8px; font-size:14px; cursor:pointer; font-weight:600;}
+  .tier-cta:hover{ border-color:var(--accent); color:var(--accent);}
+
+  /* addons */
+  .addons{ display:flex; gap:12px; flex-wrap:wrap; margin-top:34px;}
+  .addon-chip{ border:1px solid var(--border-strong); border-radius:999px; padding:10px 18px; font-size:13px; display:flex; align-items:center; gap:10px; background:var(--surface);}
+  .addon-chip .p{ font-family:'JetBrains Mono',monospace; color:var(--amber); font-weight:600;}
+
+  /* VEGAS CALLOUT */
+  .callout{ background:linear-gradient(120deg, var(--surface) 0%, var(--surface-2) 100%); border:1px solid var(--border-strong); border-radius:22px; padding:48px; display:grid; grid-template-columns:1.2fr 0.8fr; gap:40px; align-items:center; position:relative; overflow:hidden;}
+  @media (max-width:880px){ .callout{ grid-template-columns:1fr; padding:32px;} }
+  .callout::after{ content:""; position:absolute; top:-100px; left:-100px; width:340px; height:340px; background:radial-gradient(circle, var(--pink-dim), transparent 70%);}
+  .callout h3{ font-size:28px; margin-bottom:12px;}
+  .callout p{ color:var(--muted); font-size:15px; line-height:1.6; margin-bottom:20px;}
+  .callout-price{ background:var(--bg); border:1px solid var(--border-strong); border-radius:16px; padding:26px; text-align:center;}
+  .callout-price .amt{ font-family:'JetBrains Mono',monospace; font-size:36px; font-weight:700; color:var(--pink);}
+  .callout-price .per{ font-size:12px; color:var(--muted); margin-top:4px;}
+
+  /* MEMBERSHIP */
+  .mem-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
+  @media (max-width:880px){ .mem-grid{ grid-template-columns:1fr;} }
+  .mem-card{ border:1px solid var(--border); background:var(--surface); border-radius:16px; padding:28px; text-align:center;}
+  .mem-card.pop{ border-color:var(--accent);}
+  .mem-price{ font-family:'JetBrains Mono',monospace; font-size:32px; font-weight:700; margin:14px 0 4px;}
+  .mem-price span{ font-size:13px; color:var(--muted); font-weight:400;}
+
+  /* BOOKING FORM */
+  .booker{ background:var(--surface); border:1px solid var(--border-strong); border-radius:22px; padding:40px; display:grid; grid-template-columns:1.3fr 0.7fr; gap:40px;}
+  @media (max-width:900px){ .booker{ grid-template-columns:1fr; padding:26px;} }
+  .field{ margin-bottom:18px;}
+  .field label{ display:block; font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:8px;}
+  .field input, .field select{ width:100%; background:var(--surface-2); border:1px solid var(--border-strong); color:var(--text); padding:12px 14px; border-radius:9px; font-size:14px; font-family:'Inter',sans-serif;}
+  .field input::placeholder{ color:#5A6274;}
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media (max-width:560px){ .row2{ grid-template-columns:1fr;} }
+  .addon-check{ display:flex; align-items:center; gap:10px; background:var(--surface-2); border:1px solid var(--border); border-radius:9px; padding:11px 14px; font-size:13px; margin-bottom:8px; cursor:pointer;}
+  .addon-check input{ width:auto; accent-color:var(--accent);}
+  .summary{ background:var(--surface-2); border:1px solid var(--border-strong); border-radius:16px; padding:24px; position:sticky; top:100px; height:fit-content;}
+  .summary-row{ display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px solid var(--border); color:var(--muted);}
+  .summary-row.total{ border-bottom:none; color:var(--text); font-weight:700; font-size:16px; padding-top:14px;}
+  .summary-row .v{ font-family:'JetBrains Mono',monospace;}
+
+  .confirm-box{ display:none; background:var(--accent-dim); border:1px solid var(--accent); border-radius:12px; padding:16px; font-size:13px; margin-top:14px; color:var(--accent);}
+  .confirm-box.show{ display:block;}
+
+  footer{ border-top:1px solid var(--border); padding:40px 0; text-align:center; color:var(--muted); font-size:13px;}
+
+  /* VOICE ASSISTANT */
+  #voiceFab{
+    position:fixed; bottom:26px; right:26px; z-index:80;
+    width:60px; height:60px; border-radius:50%; border:none;
+    background:var(--accent); color:#04120F; font-size:24px; cursor:pointer;
+    box-shadow:0 8px 24px rgba(63,232,209,0.4); transition:transform .15s ease;
+  }
+  #voiceFab:hover{ transform:scale(1.06);}
+  #voiceFab.speaking{ animation:voicePulse 1.2s infinite;}
+  @keyframes voicePulse{
+    0%{ box-shadow:0 0 0 0 rgba(63,232,209,0.55);}
+    70%{ box-shadow:0 0 0 16px rgba(63,232,209,0);}
+    100%{ box-shadow:0 0 0 0 rgba(63,232,209,0);}
+  }
+
+  .voice-panel{
+    display:none; position:fixed; bottom:98px; right:26px; z-index:80;
+    width:320px; max-width:calc(100vw - 40px); background:var(--surface);
+    border:1px solid var(--border-strong); border-radius:16px; padding:18px;
+    box-shadow:0 16px 50px rgba(0,0,0,0.5);
+  }
+  .voice-panel.open{ display:block;}
+  .voice-panel-head{ display:flex; justify-content:space-between; align-items:center; font-family:'Space Grotesk',sans-serif; font-weight:600; margin-bottom:12px;}
+  .voice-close{ background:none; border:none; color:var(--muted); font-size:16px; cursor:pointer;}
+  .voice-close:hover{ color:var(--text);}
+  .voice-transcript{ background:var(--surface-2); border-radius:10px; padding:12px 14px; font-size:13px; color:var(--text); line-height:1.5; margin-bottom:14px; min-height:44px;}
+  .voice-actions{ display:flex; flex-direction:column; gap:8px;}
+  .voice-btn{ background:var(--surface-2); border:1px solid var(--border-strong); color:var(--text); padding:10px 12px; border-radius:8px; font-size:13px; cursor:pointer; text-align:left;}
+  .voice-btn:hover{ border-color:var(--accent);}
+  .voice-btn.primary{ background:var(--accent); color:#04120F; font-weight:600; border:none;}
+  .voice-btn.quiet{ color:var(--muted); border:none; background:none; font-size:12px; padding:4px 12px;}
+
+  /* PAYMENT RESULT POPUP */
+  .pay-overlay{
+    display:none; position:fixed; inset:0; z-index:100;
+    background:rgba(5,7,12,0.72); backdrop-filter:blur(4px);
+    align-items:center; justify-content:center; padding:20px;
+  }
+  .pay-overlay.open{ display:flex;}
+  .pay-modal{
+    background:var(--surface); border:1px solid var(--border-strong); border-radius:18px;
+    padding:36px 32px; max-width:380px; width:100%; text-align:center;
+    box-shadow:0 24px 70px rgba(0,0,0,0.55);
+  }
+  .pay-icon{
+    width:64px; height:64px; border-radius:50%; margin:0 auto 18px;
+    display:flex; align-items:center; justify-content:center; font-size:32px;
+  }
+  .pay-icon.success{ background:rgba(63,232,209,0.15); color:var(--accent);}
+  .pay-icon.fail{ background:rgba(255,77,141,0.15); color:var(--pink);}
+  .pay-modal h3{ font-size:22px; margin-bottom:10px;}
+  .pay-modal p{ color:var(--muted); font-size:14px; line-height:1.5; margin-bottom:24px;}
+  .pay-modal button{ background:var(--accent); color:#04120F; font-weight:600; border:none; padding:12px 28px; border-radius:9px; font-size:14px; cursor:pointer;}
+  .pay-modal button.fail{ background:var(--pink); color:#20040D;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap navrow">
+    <div class="logo"><span class="dot"></span>DRIPLINE</div>
+    <div class="navlinks">
+      <a href="#menu">Menu</a>
+      <a href="#vegas">Vegas Recovery</a>
+      <a href="#membership">Membership</a>
+      <a href="#partners">Partners</a>
+    </div>
+    <a href="#book" class="navbtn">Book Now</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">Mobile IV therapy · 7 markets</div>
+      <h1>IV recovery,<br><span>dispatched.</span></h1>
+      <p class="lead">Licensed RNs, at your hotel, home, or event in under 60 minutes. Hangover fixes, energy boosts, and beauty drips — Vegas, Miami, Nashville, Scottsdale, Austin, New York, and Los Angeles.</p>
+      <div class="hero-ctas">
+        <a href="#book" class="btn-primary">Book a drip →</a>
+        <a href="#menu" class="btn-ghost">See the menu</a>
+      </div>
+      <div class="trustbar">
+        <div class="trust-item"><b>60 min</b>&nbsp;avg dispatch</div>
+        <div class="trust-item"><b>Licensed</b>&nbsp;RNs only</div>
+        <div class="trust-item"><b>7 cities</b>&nbsp;and growing</div>
+      </div>
+    </div>
+
+    <div class="tracker">
+      <div class="tracker-head">
+        <span class="label"><span class="pulse-dot"></span>Bookings happening now</span>
+      </div>
+      <div class="tracker-num mono"><span id="trackerCount">24</span> today</div>
+      <div class="tracker-goal">across our 7 markets — book yours in under 60 minutes</div>
+      <div class="drip-visual">
+        <div class="bag"><div class="bag-cap"></div><div class="bag-fill" id="bagFill"></div></div>
+        <div class="stat-cols">
+          <div class="stat-row"><span class="k">Vegas Strip</span><span class="v">9 today</span></div>
+          <div class="stat-row"><span class="k">Miami Beach</span><span class="v">6 today</span></div>
+          <div class="stat-row"><span class="k">New York</span><span class="v">7 today</span></div>
+          <div class="stat-row"><span class="k">Los Angeles</span><span class="v">8 today</span></div>
+          <div class="stat-row"><span class="k">Scottsdale</span><span class="v">4 today</span></div>
+          <div class="stat-row"><span class="k">Austin / Nashville</span><span class="v">5 today</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="menu">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">The menu</div>
+      <h2>Four tiers, one proven formula.</h2>
+      <p>Same trusted Myers'-based core, scaled up for whatever your body needs — no confusing 15-item menu, just a clear ladder.</p>
+    </div>
+
+    <div class="menu-grid">
+      <div class="tier">
+        <span class="tier-num">01 · ENTRY</span>
+        <h3>Hydration</h3>
+        <div class="price">$99<span>/session</span></div>
+        <ul>
+          <li>Saline or Lactated Ringers</li>
+          <li>Rapid rehydration</li>
+          <li>15–20 min infusion</li>
+        </ul>
+        <button class="tier-cta" onclick="selectPackage('Hydration',99)">Select</button>
+      </div>
+
+      <div class="tier featured">
+        <span class="tier-tag">Best seller</span>
+        <span class="tier-num">02 · CORE</span>
+        <h3>Myers' Cocktail</h3>
+        <div class="price">$199<span>/session</span></div>
+        <ul>
+          <li>B-complex, B12, Vitamin C</li>
+          <li>Zinc, magnesium, glutathione</li>
+          <li>Energy + immune support</li>
+        </ul>
+        <button class="tier-cta" onclick="selectPackage('Myers Cocktail',199)">Select</button>
+      </div>
+
+      <div class="tier">
+        <span class="tier-num">03 · UPSELL</span>
+        <h3>Deluxe Myers'</h3>
+        <div class="price">$289<span>/session</span></div>
+        <ul>
+          <li>Everything in Core, doubled</li>
+          <li>Anti-nausea or pain relief</li>
+          <li>Faster, fuller recovery</li>
+        </ul>
+        <button class="tier-cta" onclick="selectPackage('Deluxe Myers',289)">Select</button>
+      </div>
+
+      <div class="tier">
+        <span class="tier-num">04 · PREMIUM</span>
+        <h3>Elite All-In</h3>
+        <div class="price">$369<span>/session</span></div>
+        <ul>
+          <li>Full-spectrum hydration + energy</li>
+          <li>Recovery, immunity, and glow</li>
+          <li>Our most complete infusion</li>
+        </ul>
+        <button class="tier-cta" onclick="selectPackage('Elite All-In',369)">Select</button>
+      </div>
+    </div>
+
+    <div class="addons">
+      <div class="addon-chip">NAD+ boost <span class="p">+$150</span></div>
+      <div class="addon-chip">Glutathione beauty push <span class="p">+$90</span></div>
+      <div class="addon-chip">Anti-nausea shot <span class="p">+$35</span></div>
+      <div class="addon-chip">Extra vitamin (any) <span class="p">+$30</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="vegas">
+  <div class="wrap">
+    <div class="callout">
+      <div>
+        <div class="eyebrow">Vegas exclusive</div>
+        <h3>The Morning-After Recovery Package</h3>
+        <p>Built for bachelorette parties, groomsmen suites, and anyone who overdid it on the Strip. One nurse, one visit, the whole room feeling human again in under an hour. Includes Myers' base + anti-nausea + electrolyte push per person.</p>
+        <a href="#book" class="btn-primary">Book for your group →</a>
+      </div>
+      <div class="callout-price">
+        <div class="amt mono">$175</div>
+        <div class="per">per person · groups of 4+</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="membership">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Recurring revenue, for you and us</div>
+      <h2>Membership plans.</h2>
+      <p>Two drips a month, locked-in pricing, priority dispatch. This is what keeps your calendar full even on slow nights.</p>
+    </div>
+    <div class="mem-grid">
+      <div class="mem-card">
+        <h3>Solo</h3>
+        <div class="mem-price mono">$149<span>/mo</span></div>
+        <p style="color:var(--muted); font-size:13px;">2 Myers' Cocktails monthly, priority booking</p>
+        <button class="tier-cta" style="margin-top:14px;" onclick="selectPackage('Solo Membership',149)">Choose Solo</button>
+      </div>
+      <div class="mem-card pop">
+        <span class="tier-tag">Most popular</span>
+        <h3 style="margin-top:10px;">Couples</h3>
+        <div class="mem-price mono">$259<span>/mo</span></div>
+        <p style="color:var(--muted); font-size:13px;">2 drips each, shared address, one visit</p>
+        <button class="tier-cta" style="margin-top:14px;" onclick="selectPackage('Couples Membership',259)">Choose Couples</button>
+      </div>
+      <div class="mem-card">
+        <h3>Squad</h3>
+        <div class="mem-price mono">$599<span>/mo</span></div>
+        <p style="color:var(--muted); font-size:13px;">Up to 6 people, 1 group visit monthly</p>
+        <button class="tier-cta" style="margin-top:14px;" onclick="selectPackage('Squad Membership',599)">Choose Squad</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="partners">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Hotels · influencers · gyms · planners</div>
+      <h2>Partner with DRIPLINE.</h2>
+      <p>Refer a booking, earn every time it converts. We track it automatically once you have a code — apply below and we'll follow up.</p>
+    </div>
+    <div class="addons">
+      <div class="addon-chip">Hotel concierge <span class="p">$20/booking</span></div>
+      <div class="addon-chip">Content creators / influencers <span class="p">$20–25/booking</span></div>
+      <div class="addon-chip">Wedding & event planners <span class="p">$25/booking</span></div>
+      <div class="addon-chip">Gyms & trainers <span class="p">$15/booking</span></div>
+      <div class="addon-chip">Corporate wellness <span class="p">Custom rate</span></div>
+    </div>
+
+    <div class="booker" style="margin-top:34px;">
+      <div>
+        <div class="row2">
+          <div class="field">
+            <label>Your name</label>
+            <input type="text" id="paName" placeholder="Jess Rivera">
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="paEmail" placeholder="jess@email.com">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>Business / handle</label>
+            <input type="text" id="paBusiness" placeholder="@jessdoesvegas or Bellagio Concierge">
+          </div>
+          <div class="field">
+            <label>Partner type</label>
+            <select id="paType">
+              <option value="influencer">Content creator / influencer</option>
+              <option value="hotel">Hotel concierge</option>
+              <option value="gym">Gym / studio / trainer</option>
+              <option value="planner">Event / wedding planner</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>Platform (if creator)</label>
+            <input type="text" id="paPlatform" placeholder="TikTok, Instagram, etc.">
+          </div>
+          <div class="field">
+            <label>Followers (if creator)</label>
+            <input type="text" id="paFollowers" placeholder="e.g. 42K">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>City</label>
+            <select id="paCity">
+              <option>Las Vegas</option>
+              <option>Miami</option>
+              <option>Nashville</option>
+              <option>Scottsdale</option>
+              <option>Austin</option>
+              <option>New York</option>
+              <option>Los Angeles</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Phone (optional)</label>
+            <input type="tel" id="paPhone" placeholder="(702) 555-0134">
+          </div>
+        </div>
+        <button class="btn-primary" style="width:100%;" onclick="submitPartnerApplication(this)">Apply to partner</button>
+        <div class="confirm-box" id="paConfirmBox"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="book">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Book now</div>
+      <h2>Get a drip dispatched.</h2>
+      <p>Fill this out and a nurse is on the way. Have a concierge or referral code? Add it below — it's tracked automatically.</p>
+    </div>
+
+    <div class="booker">
+      <div>
+        <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:22px;">
+          <label style="display:block; font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:10px;">Have an account? (optional — guest checkout works too)</label>
+          <div class="row2">
+            <input type="email" id="authEmail" placeholder="Email" style="background:var(--surface); border:1px solid var(--border-strong); color:var(--text); padding:10px 12px; border-radius:8px; font-size:13px;">
+            <input type="password" id="authPassword" placeholder="Password" style="background:var(--surface); border:1px solid var(--border-strong); color:var(--text); padding:10px 12px; border-radius:8px; font-size:13px;">
+          </div>
+          <div style="display:flex; gap:10px; margin-top:10px;">
+            <button type="button" class="btn-ghost" style="padding:8px 16px; font-size:13px;" onclick="doLogin()">Log in</button>
+            <button type="button" class="btn-ghost" style="padding:8px 16px; font-size:13px;" onclick="doRegister()">Create account</button>
+            <span id="authStatus" style="font-size:13px; color:var(--accent); align-self:center;"></span>
+          </div>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label>Full name</label>
+            <input type="text" id="fName" placeholder="Jordan Smith">
+          </div>
+          <div class="field">
+            <label>Phone</label>
+            <input type="tel" id="fPhone" placeholder="(702) 555-0134">
+          </div>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label>Email (for receipt)</label>
+            <input type="email" id="fEmail" placeholder="jordan@email.com">
+          </div>
+          <div class="field">
+            <label>City / market</label>
+            <select id="fCity">
+              <option>Las Vegas</option>
+              <option>Miami</option>
+              <option>Nashville</option>
+              <option>Scottsdale</option>
+              <option>Austin</option>
+              <option>New York</option>
+              <option>Los Angeles</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label>Location type</label>
+            <select id="fLocation">
+              <option>Hotel room</option>
+              <option>Home</option>
+              <option>Event / venue</option>
+              <option>Office</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Package</label>
+          <select id="fPackage" onchange="calcTotal()">
+            <option value="99">Hydration — $99</option>
+            <option value="199" selected>Myers' Cocktail — $199</option>
+            <option value="289">Deluxe Myers' — $289</option>
+            <option value="369">Elite All-In — $369</option>
+            <option value="175">Vegas Recovery Package (per person) — $175</option>
+            <option value="149">Solo Membership — $149</option>
+            <option value="259">Couples Membership — $259</option>
+            <option value="599">Squad Membership — $599</option>
+          </select>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label>Group size</label>
+            <input type="number" id="fQty" value="1" min="1" onchange="calcTotal()">
+          </div>
+          <div class="field">
+            <label>Partner / referral code</label>
+            <input type="text" id="fCode" placeholder="e.g. BELLAGIO2026">
+          </div>
+        </div>
+
+        <label style="display:block; font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:10px;">Add-ons</label>
+        <label class="addon-check"><input type="checkbox" value="150" onchange="calcTotal()"> NAD+ boost — +$150</label>
+        <label class="addon-check"><input type="checkbox" value="90" onchange="calcTotal()"> Glutathione beauty push — +$90</label>
+        <label class="addon-check"><input type="checkbox" value="35" onchange="calcTotal()"> Anti-nausea shot — +$35</label>
+
+        <div class="confirm-box" id="confirmBox"></div>
+      </div>
+
+      <div class="summary">
+        <div class="summary-row"><span>Package</span><span class="v" id="sumPackage">$199</span></div>
+        <div class="summary-row"><span>Qty</span><span class="v" id="sumQty">×1</span></div>
+        <div class="summary-row"><span>Add-ons</span><span class="v" id="sumAddons">$0</span></div>
+        <div class="summary-row"><span>Referral discount</span><span class="v" id="sumDiscount">—</span></div>
+        <div class="summary-row total"><span>Total</span><span class="v" id="sumTotal">$199</span></div>
+
+        <label style="display:block; font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin:16px 0 8px;">Pay with</label>
+        <label class="addon-check"><input type="radio" name="payMethod" value="card" checked> Card / Apple Pay / Google Pay / Cash App</label>
+        <label class="addon-check"><input type="radio" name="payMethod" value="paypal"> PayPal</label>
+
+        <button class="btn-primary" style="width:100%; margin-top:14px;" onclick="submitBooking(this)">Confirm booking</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VOICE ASSISTANT -->
+<button id="voiceFab" onclick="openVoiceAssistant()" aria-label="Ask DRIPLINE assistant">
+  <span id="voiceFabIcon">🎙️</span>
+</button>
+
+<div id="payOverlay" class="pay-overlay">
+  <div class="pay-modal">
+    <div class="pay-icon" id="payIcon">✓</div>
+    <h3 id="payTitle">Payment successful</h3>
+    <p id="payMessage">Your booking is confirmed.</p>
+    <button id="payCloseBtn" onclick="closePayPopup()">Done</button>
+  </div>
+</div>
+
+<div id="voicePanel" class="voice-panel">
+
+  <div class="voice-panel-head">
+    <span>DRIPLINE Assistant</span>
+    <button class="voice-close" onclick="closeVoiceAssistant()">✕</button>
+  </div>
+  <div class="voice-transcript" id="voiceTranscript">
+    Hi — I'm the DRIPLINE assistant. Want me to explain how this works?
+  </div>
+  <div style="margin-bottom:10px;">
+    <label style="display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); margin-bottom:6px;">Language</label>
+    <select id="voiceLang" style="width:100%; background:var(--surface-2); border:1px solid var(--border-strong); color:var(--text); padding:8px 10px; border-radius:8px; font-size:13px;">
+      <option value="en">English</option>
+      <option value="es">Español</option>
+      <option value="fr">Français</option>
+      <option value="pt">Português</option>
+      <option value="ht">Kreyòl Ayisyen</option>
+    </select>
+  </div>
+  <div class="voice-actions">
+    <button class="voice-btn" onclick="voiceExplain()">🔊 Explain the service</button>
+    <button class="voice-btn" onclick="voiceGoToAccount()">Create an account</button>
+    <button class="voice-btn" onclick="voiceGoToGuestBooking()">Continue as guest &amp; book</button>
+    <button class="voice-btn primary" onclick="voiceGoToBooking()">Book with a nurse now →</button>
+    <button class="voice-btn quiet" onclick="stopVoice()">🔇 Stop talking</button>
+  </div>
+</div>
+
+<footer>
+  DRIPLINE · Mobile IV Hydration & Wellness Dispatch · Las Vegas · Miami · Nashville · Scottsdale · Austin · New York · Los Angeles
+</footer>
+
+<script>
+  // ---- CONFIG ----
+  // Point this at your deployed dripline-backend (see the backend project's README).
+  // Until it's deployed, this falls back to demo mode so the app stays usable.
+  const BACKEND_URL = "https://dripline-backend-1.onrender.com";
+  const dailyGoal = 10000;
+
+  let dailyTotal = 0;
+  let bookingCount = 0;
+  let authToken = null;   // set after register/login; kept in memory only (see note in README)
+  let currentUser = null;
+
+  async function initTracker(){
+    try{
+      const resp = await fetch(BACKEND_URL + '/stats');
+      if(!resp.ok) throw new Error('stats fetch failed');
+      const stats = await resp.json();
+      dailyTotal = stats.total;
+      bookingCount = stats.count;
+    } catch(err){
+      console.warn('Backend not reachable yet — showing demo starting point.', err);
+      dailyTotal = 0;
+      bookingCount = 0;
+    }
+    updateTracker();
+  }
+
+  function updateTracker(){
+    document.getElementById('trackerCount').textContent = bookingCount;
+    let pct = Math.min(100, (dailyTotal/dailyGoal)*100);
+    document.getElementById('bagFill').style.height = pct + '%';
+  }
+
+  initTracker();
+
+  function selectPackage(name, price){
+    document.getElementById('fPackage').value = price;
+    calcTotal();
+    document.getElementById('book').scrollIntoView({behavior:'smooth'});
+  }
+
+  // ---------- PARTNER APPLICATIONS ----------
+
+  async function submitPartnerApplication(btn){
+    const name = document.getElementById('paName').value.trim();
+    const email = document.getElementById('paEmail').value.trim();
+    const box = document.getElementById('paConfirmBox');
+
+    if(!name || !email){
+      alert('Name and email are required.');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+
+    const payload = {
+      name, email,
+      businessName: document.getElementById('paBusiness').value.trim(),
+      type: document.getElementById('paType').value,
+      platform: document.getElementById('paPlatform').value.trim(),
+      followers: document.getElementById('paFollowers').value.trim(),
+      city: document.getElementById('paCity').value,
+      phone: document.getElementById('paPhone').value.trim(),
+    };
+
+    try{
+      const resp = await fetch(BACKEND_URL + '/partner-applications', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if(!resp.ok) throw new Error('Submission failed');
+
+      box.classList.add('show');
+      box.textContent = 'Thanks, ' + name + ' — we got your application and will follow up by email shortly.';
+    } catch(err){
+      console.warn('Partner application submission failed:', err);
+      box.classList.add('show');
+      box.textContent = 'Could not submit right now — please try again in a moment, or email us directly.';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Apply to partner';
+    }
+  }
+
+  function calcTotal(){
+    const pkgPrice = parseInt(document.getElementById('fPackage').value);
+    const pkgLabel = document.getElementById('fPackage').selectedOptions[0].text.split('—')[0].trim();
+    const qty = Math.max(1, parseInt(document.getElementById('fQty').value)||1);
+    const checks = document.querySelectorAll('.addon-check input[type=checkbox]:checked');
+    let addonTotal = 0;
+    checks.forEach(c => addonTotal += parseInt(c.value));
+
+    const code = document.getElementById('fCode').value.trim();
+    const subtotal = (pkgPrice*qty) + addonTotal;
+    let discount = 0;
+    if(code.length > 0) discount = Math.round(subtotal*0.1);
+    const total = subtotal - discount;
+
+    document.getElementById('sumPackage').textContent = '$'+pkgPrice;
+    document.getElementById('sumQty').textContent = '×'+qty;
+    document.getElementById('sumAddons').textContent = '$'+addonTotal;
+    document.getElementById('sumDiscount').textContent = discount>0 ? '-$'+discount+' ('+code+')' : '—';
+    document.getElementById('sumTotal').textContent = '$'+total;
+
+    return {pkgLabel, total};
+  }
+  calcTotal();
+
+  // ---------- AUTH ----------
+
+  async function doRegister(){
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const name = document.getElementById('fName').value.trim() || email.split('@')[0];
+    const status = document.getElementById('authStatus');
+
+    if(!email || !password){ status.textContent = 'Enter email + password first.'; return; }
+
+    try{
+      const resp = await fetch(BACKEND_URL + '/register', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ name, email, password })
+      });
+      const data = await resp.json();
+      if(!resp.ok) throw new Error(data.error || 'Registration failed');
+      authToken = data.token; currentUser = data.user;
+      status.textContent = 'Account created — logged in as ' + data.user.email;
+    } catch(err){
+      status.textContent = err.message;
+    }
+  }
+
+  async function doLogin(){
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const status = document.getElementById('authStatus');
+
+    if(!email || !password){ status.textContent = 'Enter email + password first.'; return; }
+
+    try{
+      const resp = await fetch(BACKEND_URL + '/login', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ email, password })
+      });
+      const data = await resp.json();
+      if(!resp.ok) throw new Error(data.error || 'Login failed');
+      authToken = data.token; currentUser = data.user;
+      status.textContent = 'Logged in as ' + data.user.email;
+    } catch(err){
+      status.textContent = err.message;
+    }
+  }
+
+  // ---------- BOOKING + PAYMENT ----------
+
+  async function submitBooking(btn){
+    const name = document.getElementById('fName').value.trim();
+    const email = document.getElementById('fEmail').value.trim();
+    const phone = document.getElementById('fPhone').value.trim();
+    const city = document.getElementById('fCity').value;
+    const payMethod = document.querySelector('input[name="payMethod"]:checked').value;
+
+    if(name.length === 0){
+      alert('Add a name so the nurse knows who to ask for.');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Processing…';
+    const box = document.getElementById('confirmBox');
+    const {pkgLabel, total} = calcTotal();
+
+    try{
+      // Step 1: create the booking record in the real backend database
+      const headers = {'Content-Type':'application/json'};
+      if(authToken) headers['Authorization'] = 'Bearer ' + authToken;
+
+      const bookingResp = await fetch(BACKEND_URL + '/bookings', {
+        method: 'POST', headers,
+        body: JSON.stringify({ name, email, phone, city, package: pkgLabel, total, paymentMethod: payMethod, referralCode: document.getElementById('fCode').value.trim() || null })
+      });
+      if(!bookingResp.ok) throw new Error('Could not create booking on the server');
+      const { booking } = await bookingResp.json();
+
+      // Step 2: hand off to the chosen payment method
+      if(payMethod === 'paypal'){
+        const returnUrl = window.location.origin + window.location.pathname + '?bookingId=' + booking.id;
+        const ppResp = await fetch(BACKEND_URL + '/create-paypal-order', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ amount: total, bookingId: booking.id, returnUrl, cancelUrl: returnUrl })
+        });
+        const ppData = await ppResp.json();
+        if(!ppResp.ok || !ppData.approveUrl) throw new Error(ppData.error || 'PayPal order failed');
+        window.location.href = ppData.approveUrl;
+        return;
+      } else {
+        const csResp = await fetch(BACKEND_URL + '/create-checkout-session', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            description: pkgLabel + ' — DRIPLINE (' + city + ')',
+            amount: total, customerName: name, customerEmail: email, bookingId: booking.id
+          })
+        });
+        const csData = await csResp.json();
+        if(!csResp.ok || !csData.url) throw new Error(csData.error || 'Stripe checkout failed');
+        window.location.href = csData.url;
+        return;
+      }
+
+    } catch(err){
+      // Backend not deployed/reachable yet — demo mode so the app stays testable
+      console.warn('Live payment unavailable, showing demo confirmation:', err);
+      dailyTotal += total;
+      bookingCount += 1;
+      updateTracker();
+
+      showPayPopup(true, 'Booked (demo mode)', 'Payments backend isn\'t connected yet, so this booking was recorded locally only: ' + pkgLabel + ' for ' + name + ' — $' + total + '.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Confirm booking';
+    }
+  }
+
+  // ---------- PAYMENT RESULT POPUP ----------
+
+  function showPayPopup(success, title, message){
+    document.getElementById('payIcon').textContent = success ? '✓' : '✕';
+    document.getElementById('payIcon').className = 'pay-icon ' + (success ? 'success' : 'fail');
+    document.getElementById('payTitle').textContent = title;
+    document.getElementById('payMessage').textContent = message;
+    document.getElementById('payCloseBtn').className = success ? '' : 'fail';
+    document.getElementById('payOverlay').classList.add('open');
+  }
+
+  function closePayPopup(){
+    document.getElementById('payOverlay').classList.remove('open');
+    // Clean the payment params out of the URL so refreshing doesn't re-trigger the popup
+    const url = new URL(window.location.href);
+    ['session_id','token','bookingId','payment'].forEach(p => url.searchParams.delete(p));
+    window.history.replaceState({}, document.title, url.pathname);
+  }
+
+  // ---------- HANDLE RETURN FROM STRIPE ----------
+  // Stripe redirects back here with ?session_id=... on success, or to CANCEL_URL
+  // (which you should set to include ?payment=canceled) if the customer backs out.
+  (function handleStripeReturn(){
+    const params = new URLSearchParams(window.location.search);
+    if(params.get('session_id')){
+      showPayPopup(true, 'Payment successful', 'Your booking is confirmed — a nurse will be dispatched shortly. Check your email for a receipt.');
+      initTracker();
+    } else if(params.get('payment') === 'canceled'){
+      showPayPopup(false, 'Payment not completed', 'Your card was not charged. You can try again whenever you\'re ready.');
+    }
+  })();
+
+  // ---------- HANDLE RETURN FROM PAYPAL ----------
+  // PayPal redirects back here with ?token=ORDER_ID&bookingId=... after the buyer approves payment.
+  (async function handlePayPalReturn(){
+    const params = new URLSearchParams(window.location.search);
+    const orderToken = params.get('token');
+    const bookingId = params.get('bookingId');
+    if(!orderToken) return;
+
+    try{
+      const resp = await fetch(BACKEND_URL + '/capture-paypal-order/' + orderToken, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ bookingId })
+      });
+      const capture = await resp.json();
+      if(capture.status === 'COMPLETED'){
+        showPayPopup(true, 'Payment successful', 'Your booking is confirmed via PayPal — a nurse will be dispatched shortly.');
+        await initTracker();
+      } else {
+        showPayPopup(false, 'Payment not completed', 'Your PayPal payment could not be confirmed. Please try again or use a card instead.');
+      }
+    } catch(err){
+      console.error('PayPal capture failed:', err);
+      showPayPopup(false, 'Something went wrong', 'We couldn\'t confirm your PayPal payment. Please try again or use a card instead.');
+    }
+  })();
+
+  // ---------- VOICE ASSISTANT ----------
+  // Tries real human voice (ElevenLabs, via our backend so the API key stays private).
+  // Falls back to the browser's built-in voice if the backend/voice isn't configured yet.
+
+  const VOICE_SCRIPTS = {
+    en: {
+      intro: "Hi, I'm the DRIPLINE assistant. We send licensed nurses to your hotel, home, or event for I V hydration therapy — hangover recovery, energy boosts, and wellness drips, usually within sixty minutes. You can book as a guest right now with no account, or create a free account to save your details for next time. What would you like to do?",
+      account: "Great — scroll down to the booking section, and look for the box at the top that says 'Have an account'. Enter an email and password there and click Create account. Then just fill out the rest of the booking form below it.",
+      guest: "No problem, no account needed. I'm taking you to the booking form now — just fill in your name and details, and you can pay as a guest.",
+      book: "Let's get a nurse booked for you right now. I'm scrolling you to the booking form — pick your package, add any extras, and hit Confirm booking when you're ready.",
+    },
+    es: {
+      intro: "Hola, soy el asistente de DRIPLINE. Enviamos enfermeras con licencia a tu hotel, casa o evento para terapia de hidratación intravenosa: recuperación de resaca, energía y bienestar, normalmente en menos de sesenta minutos. Puedes reservar ahora como invitado sin cuenta, o crear una cuenta gratuita para guardar tus datos. ¿Qué te gustaría hacer?",
+      account: "Perfecto — baja hasta la sección de reserva y busca la casilla que dice 'Have an account'. Escribe tu correo y contraseña, y haz clic en Create account. Luego completa el resto del formulario.",
+      guest: "Sin problema, no necesitas cuenta. Te llevo al formulario de reserva ahora — solo completa tu nombre y datos, y puedes pagar como invitado.",
+      book: "Vamos a reservar una enfermera ahora mismo. Te llevo al formulario — elige tu paquete, agrega extras, y confirma la reserva cuando estés listo.",
+    },
+    fr: {
+      intro: "Bonjour, je suis l'assistant DRIPLINE. Nous envoyons des infirmières agréées à votre hôtel, domicile ou événement pour une thérapie d'hydratation par intraveineuse — récupération de gueule de bois, énergie et bien-être, généralement en moins de soixante minutes. Vous pouvez réserver comme invité sans compte, ou créer un compte gratuit. Que souhaitez-vous faire ?",
+      account: "Parfait — descendez jusqu'à la section de réservation et cherchez la case 'Have an account'. Entrez votre email et mot de passe, puis cliquez sur Create account.",
+      guest: "Aucun problème, pas besoin de compte. Je vous emmène au formulaire de réservation — remplissez vos informations et payez en tant qu'invité.",
+      book: "Réservons une infirmière dès maintenant. Je vous emmène au formulaire — choisissez votre forfait et confirmez la réservation.",
+    },
+    pt: {
+      intro: "Olá, sou o assistente da DRIPLINE. Enviamos enfermeiras licenciadas ao seu hotel, casa ou evento para terapia de hidratação intravenosa — recuperação de ressaca, energia e bem-estar, geralmente em menos de sessenta minutos. Você pode reservar agora como convidado, sem conta, ou criar uma conta gratuita. O que você gostaria de fazer?",
+      account: "Ótimo — role até a seção de reserva e procure a caixa 'Have an account'. Digite seu email e senha e clique em Create account.",
+      guest: "Sem problema, não precisa de conta. Vou te levar ao formulário de reserva agora — preencha seus dados e pague como convidado.",
+      book: "Vamos reservar uma enfermeira agora. Vou te levar ao formulário — escolha seu pacote e confirme a reserva.",
+    },
+    ht: {
+      intro: "Bonjou, mwen se asistan DRIPLINE. Nou voye enfimyè ki gen lisans lakay ou, nan otèl ou, oswa nan yon evènman pou terapi idratasyon entravenn — rekiperasyon apre twòp bwè, enèji, ak byennèt, anjeneral nan mwens pase swasant minit. Ou ka rezève kounye a kòm envite san kont, oswa kreye yon kont gratis pou sove enfòmasyon ou. Kisa ou ta renmen fè?",
+      account: "Pafè — desann jiska seksyon rezèvasyon an, epi chèche bwat ki di 'Have an account'. Antre imel ou ak modpas ou epi klike sou Create account. Apre sa, ranpli rès fòm nan.",
+      guest: "Pa gen pwoblèm, ou pa bezwen kont. Mwen pral mennen ou nan fòm rezèvasyon an kounye a — jis ranpli non ou ak enfòmasyon ou, epi ou ka peye kòm envite.",
+      book: "Ann rezève yon enfimyè pou ou kounye a. Mwen pral mennen ou nan fòm rezèvasyon an — chwazi pakè ou, ajoute nenpòt ekstra, epi konfime rezèvasyon an lè ou pare.",
+    },
+  };
+
+  function currentLang(){
+    const sel = document.getElementById('voiceLang');
+    return sel ? sel.value : 'en';
+  }
+
+  async function speak(text){
+    document.getElementById('voiceTranscript').textContent = text;
+    document.getElementById('voiceFab').classList.add('speaking');
+
+    // Try real human voice via backend first
+    try{
+      const resp = await fetch(BACKEND_URL + '/tts', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ text, lang: currentLang() })
+      });
+      if(!resp.ok) throw new Error('TTS backend unavailable');
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => document.getElementById('voiceFab').classList.remove('speaking');
+      audio.onerror = () => document.getElementById('voiceFab').classList.remove('speaking');
+      window.__driplineAudio = audio; // so stopVoice() can pause it
+      audio.play();
+      return;
+    } catch(err){
+      console.warn('Real voice unavailable, falling back to browser voice:', err);
+    }
+
+    // Fallback: browser's built-in voice (free, always available, less natural-sounding)
+    if(!('speechSynthesis' in window)){
+      document.getElementById('voiceFab').classList.remove('speaking');
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = { en:'en-US', es:'es-ES', fr:'fr-FR', pt:'pt-BR', ht:'ht-HT' }[currentLang()] || 'en-US';
+    utter.onend = () => document.getElementById('voiceFab').classList.remove('speaking');
+    utter.onerror = () => document.getElementById('voiceFab').classList.remove('speaking');
+    window.speechSynthesis.speak(utter);
+  }
+
+  function stopVoice(){
+    if(window.__driplineAudio) window.__driplineAudio.pause();
+    if('speechSynthesis' in window) window.speechSynthesis.cancel();
+    document.getElementById('voiceFab').classList.remove('speaking');
+  }
+
+  function openVoiceAssistant(){
+    document.getElementById('voicePanel').classList.add('open');
+    speak(VOICE_SCRIPTS[currentLang()].intro);
+  }
+
+  // Auto-open the panel shortly after page load so it visibly greets the visitor.
+  // Browsers block audio from playing without a click/tap first, so we show a
+  // clear "tap to hear" prompt rather than silently failing to autoplay.
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      document.getElementById('voicePanel').classList.add('open');
+      document.getElementById('voiceTranscript').textContent =
+        "Hi — I'm the DRIPLINE assistant. Tap \"Explain the service\" below and I'll walk you through how this works.";
+    }, 1500);
+  });
+
+  function closeVoiceAssistant(){
+    stopVoice();
+    document.getElementById('voicePanel').classList.remove('open');
+  }
+
+  function voiceExplain(){
+    speak(VOICE_SCRIPTS[currentLang()].intro);
+  }
+
+  function voiceGoToAccount(){
+    speak(VOICE_SCRIPTS[currentLang()].account);
+    setTimeout(() => {
+      document.getElementById('book').scrollIntoView({behavior:'smooth'});
+      const authEmail = document.getElementById('authEmail');
+      if(authEmail) authEmail.focus();
+    }, 600);
+  }
+
+  function voiceGoToGuestBooking(){
+    speak(VOICE_SCRIPTS[currentLang()].guest);
+    setTimeout(() => document.getElementById('book').scrollIntoView({behavior:'smooth'}), 600);
+  }
+
+  function voiceGoToBooking(){
+    speak(VOICE_SCRIPTS[currentLang()].book);
+    setTimeout(() => {
+      document.getElementById('book').scrollIntoView({behavior:'smooth'});
+      const fName = document.getElementById('fName');
+      if(fName) fName.focus();
+    }, 600);
+  }
+</script>
+
+</body>
+</html>
