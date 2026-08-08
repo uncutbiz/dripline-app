@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DRIPLINE — Nurse Portal</title>
+<style>
+  :root{
+    --bg:#0A0E17; --surface:#12182A; --surface-2:#1A2238;
+    --accent:#3FE8D1; --pink:#FF4D8D; --amber:#FFB347;
+    --text:#F5F7FA; --muted:#8A93A6; --border:rgba(255,255,255,0.08); --border-strong:rgba(255,255,255,0.16);
+  }
+  *{box-sizing:border-box;}
+  body{ background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif; margin:0; padding:24px;}
+  h1,h2{ font-family:'Space Grotesk',system-ui,sans-serif;}
+  .wrap{ max-width:720px; margin:0 auto;}
+  .gate{ max-width:340px; margin:100px auto; text-align:center;}
+  .gate input{ width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); margin:8px 0; font-size:14px;}
+  button{ background:var(--accent); color:#04120F; border:none; padding:11px 20px; border-radius:8px; font-weight:600; cursor:pointer; font-size:14px;}
+  button.secondary{ background:var(--surface-2); color:var(--text); border:1px solid var(--border-strong);}
+  button.danger{ background:transparent; color:var(--pink); border:1px solid var(--pink);}
+  button:disabled{ opacity:0.5; cursor:not-allowed;}
+  section{ margin-bottom:32px;}
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; margin-bottom:12px;}
+  .card-top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;}
+  .payout{ font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:700; color:var(--accent);}
+  .pkg{ font-weight:600;}
+  .meta{ color:var(--muted); font-size:13px; margin-bottom:12px;}
+  .card-actions{ display:flex; gap:10px;}
+  .empty{ color:var(--muted); font-size:14px; padding:20px 0;}
+  #err{ color:var(--pink); font-size:13px; margin-top:8px;}
+  .topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;}
+  .status-tag{ font-size:11px; text-transform:uppercase; padding:3px 9px; border-radius:999px; background:rgba(63,232,209,0.15); color:var(--accent); font-weight:600;}
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <h1>Nurse Portal</h1>
+  <p style="color:var(--muted); font-size:13px;">Enter your phone number and PIN (given to you by DRIPLINE) to see open bookings.</p>
+  <input type="tel" id="loginPhone" placeholder="Phone (e.g. +17025550123)">
+  <input type="text" id="loginPin" placeholder="4-digit PIN" maxlength="4">
+  <br><br>
+  <button onclick="login()">Log in</button>
+  <div id="err"></div>
+</div>
+
+<div class="wrap" id="portal" style="display:none;">
+  <div class="topbar">
+    <h1 id="greeting">Hi</h1>
+    <button class="secondary" onclick="loadOffers()">↻ Refresh</button>
+  </div>
+
+  <section>
+    <h2>Your upcoming bookings</h2>
+    <div id="myUpcoming"><div class="empty">Loading…</div></div>
+  </section>
+
+  <section>
+    <h2>Open offers near you</h2>
+    <p style="color:var(--muted); font-size:13px; margin-top:-8px;">Pick whatever fits your schedule — first to accept gets it.</p>
+    <div id="openOffers"><div class="empty">Loading…</div></div>
+  </section>
+</div>
+
+<script>
+  // Point this at your deployed backend — same URL as in dripline_app.html
+  const BACKEND_URL = "https://dripline-backend-1.onrender.com";
+  let TOKEN = "";
+
+  async function login(){
+    const phone = document.getElementById('loginPhone').value.trim();
+    const pin = document.getElementById('loginPin').value.trim();
+    const err = document.getElementById('err');
+    if(!phone || !pin){ err.textContent = 'Enter both phone and PIN.'; return; }
+
+    try{
+      const resp = await fetch(BACKEND_URL + '/nurse-login', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ phone, pin })
+      });
+      const data = await resp.json();
+      if(!resp.ok) throw new Error(data.error || 'Login failed');
+
+      TOKEN = data.token;
+      document.getElementById('gate').style.display = 'none';
+      document.getElementById('portal').style.display = 'block';
+      document.getElementById('greeting').textContent = 'Hi, ' + data.nurse.name;
+      loadOffers();
+    } catch(e){
+      err.textContent = e.message;
+    }
+  }
+
+  async function loadOffers(){
+    try{
+      const resp = await fetch(BACKEND_URL + '/nurse-offers', {
+        headers: { 'Authorization': 'Bearer ' + TOKEN }
+      });
+      const data = await resp.json();
+      if(!resp.ok) throw new Error(data.error || 'Could not load offers');
+
+      renderUpcoming(data.myUpcoming);
+      renderOffers(data.openOffers);
+    } catch(e){
+      document.getElementById('openOffers').innerHTML = '<div class="empty">' + e.message + '</div>';
+    }
+  }
+
+  function renderUpcoming(bookings){
+    const el = document.getElementById('myUpcoming');
+    if(bookings.length === 0){ el.innerHTML = '<div class="empty">Nothing accepted yet.</div>'; return; }
+    el.innerHTML = bookings.map(b => `
+      <div class="card">
+        <div class="card-top"><span class="pkg">${b.package}</span><span class="status-tag">${b.status}</span></div>
+        <div class="meta">${b.city} · ${b.name} · $${b.nursePayout || '—'} payout</div>
+      </div>
+    `).join('');
+  }
+
+  function renderOffers(offers){
+    const el = document.getElementById('openOffers');
+    if(offers.length === 0){ el.innerHTML = '<div class="empty">No open offers right now — check back soon.</div>'; return; }
+    el.innerHTML = offers.map(b => `
+      <div class="card">
+        <div class="card-top"><span class="pkg">${b.package}</span><span class="payout">$${b.nursePayout}</span></div>
+        <div class="meta">${b.city} · booked ${new Date(b.createdAt).toLocaleTimeString()}</div>
+        <div class="card-actions">
+          <button onclick="acceptOffer('${b.id}')">Accept</button>
+          <button class="danger" onclick="declineOffer('${b.id}')">Pass</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function acceptOffer(bookingId){
+    const resp = await fetch(BACKEND_URL + '/nurse-offers/' + bookingId + '/accept', {
+      method:'POST', headers: { 'Authorization': 'Bearer ' + TOKEN }
+    });
+    const data = await resp.json();
+    if(!resp.ok){ alert(data.error || 'Could not accept — it may already be taken.'); }
+    loadOffers();
+  }
+
+  async function declineOffer(bookingId){
+    await fetch(BACKEND_URL + '/nurse-offers/' + bookingId + '/decline', {
+      method:'POST', headers: { 'Authorization': 'Bearer ' + TOKEN }
+    });
+    loadOffers();
+  }
+
+  // auto-refresh every 20s so new offers show up without manual reloading
+  setInterval(() => { if(TOKEN) loadOffers(); }, 20000);
+</script>
+</body>
+</html>
