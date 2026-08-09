@@ -67,6 +67,14 @@
   </section>
 
   <section>
+    <h2>Nurse / Agency Applications</h2>
+    <table>
+      <thead><tr><th>Name</th><th>Agency</th><th>Phone</th><th>City</th><th>License info</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody id="nurseAppRows"></tbody>
+    </table>
+  </section>
+
+  <section>
     <h2>Nurses</h2>
     <div class="add-nurse">
       <input type="text" id="nurseName" placeholder="Name">
@@ -174,6 +182,16 @@
     renderNurses(nurses);
 
     try{
+      const nurseAppsResp = await fetch(BACKEND_URL + '/nurse-applications', { headers: headers() });
+      if(!nurseAppsResp.ok) throw new Error('Nurse applications endpoint not available yet');
+      const { applications } = await nurseAppsResp.json();
+      renderNurseApplications(applications);
+    } catch(err){
+      console.error('Nurse applications section failed to load:', err);
+      document.getElementById('nurseAppRows').innerHTML = '<tr><td colspan="7" style="color:var(--muted);">Nurse applications feature not available yet — update server.js to enable it.</td></tr>';
+    }
+
+    try{
       const statsResp = await fetch(BACKEND_URL + '/stats');
       const stats = await statsResp.json();
       document.getElementById('statTotal').textContent = '$' + stats.total.toLocaleString();
@@ -233,6 +251,47 @@
       console.error('Revenue chart failed to load:', err);
       document.getElementById('revenueChart').innerHTML = '<div style="color:var(--muted); font-size:13px;">Revenue trend not available yet — update server.js to enable it.</div>';
     }
+  }
+
+  function renderNurseApplications(apps){
+    const rows = document.getElementById('nurseAppRows');
+    rows.innerHTML = '';
+    const pending = apps.filter(a => a.status === 'pending');
+    if(pending.length === 0){
+      rows.innerHTML = '<tr><td colspan="7" style="color:var(--muted);">No pending applications.</td></tr>';
+      return;
+    }
+    pending.forEach(a => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${a.name}</td>
+        <td>${a.agencyName || '—'}</td>
+        <td>${a.phone}</td>
+        <td>${a.city}</td>
+        <td style="max-width:180px; font-size:12px; color:var(--muted);">${a.licenseInfo || '—'}</td>
+        <td><span class="status pending">Pending</span></td>
+        <td style="display:flex; gap:6px;">
+          <button class="btn secondary" onclick="approveNurseApplication('${a.id}')">Approve</button>
+          <button class="btn secondary" onclick="rejectNurseApplication('${a.id}')">Reject</button>
+        </td>
+      `;
+      rows.appendChild(tr);
+    });
+  }
+
+  async function approveNurseApplication(id){
+    if(!confirm('Approve this nurse? Make sure you\'ve verified their license before approving — self-reported info isn\'t checked automatically.')) return;
+    const resp = await fetch(BACKEND_URL + '/nurse-applications/' + id + '/approve', { method:'POST', headers: headers() });
+    const data = await resp.json();
+    if(!resp.ok){ alert(data.error || 'Could not approve.'); return; }
+    alert('Approved — ' + data.nurse.name + ' has been notified with their login PIN (if SMS/email is configured).');
+    loadAll();
+  }
+
+  async function rejectNurseApplication(id){
+    if(!confirm('Reject this application?')) return;
+    await fetch(BACKEND_URL + '/nurse-applications/' + id + '/reject', { method:'POST', headers: headers() });
+    loadAll();
   }
 
   function renderNurses(nurses){
@@ -424,7 +483,8 @@
         <td><span class="status ${p.active ? 'assigned' : 'completed'}">${p.active ? 'Active' : 'Inactive'}</span></td>
         <td style="display:flex; gap:6px;">
           <button class="btn secondary toggle" onclick="togglePartner('${p.id}', ${!p.active})">${p.active ? 'Deactivate' : 'Activate'}</button>
-          ${p.totalOwed > 0 ? `<button class="btn secondary" onclick="markPartnerPaid('${p.id}')">Mark paid</button>` : ''}
+          ${p.totalOwed > 0 ? `<button class="btn secondary" onclick="markPartnerPaid('${p.id}')">Mark paid (manual)</button>` : ''}
+          ${p.totalOwed > 0 ? `<button class="btn" onclick="payoutPartnerPayPal('${p.id}')">Pay via PayPal</button>` : ''}
         </td>
       `;
       rows.appendChild(tr);
@@ -459,8 +519,17 @@
   }
 
   async function markPartnerPaid(id){
-    if(!confirm('Mark all currently-owed fees for this partner as paid? Only do this after you\'ve actually sent them the money.')) return;
+    if(!confirm('Mark all currently-owed fees for this partner as paid? Only do this after you\'ve actually sent them the money manually.')) return;
     await fetch(BACKEND_URL + '/partners/' + id + '/mark-paid', { method:'POST', headers: headers() });
+    loadAll();
+  }
+
+  async function payoutPartnerPayPal(id){
+    if(!confirm('Send a REAL PayPal payment for everything currently owed to this partner? This actually moves money.')) return;
+    const resp = await fetch(BACKEND_URL + '/partners/' + id + '/payout-paypal', { method:'POST', headers: headers() });
+    const data = await resp.json();
+    if(!resp.ok){ alert(data.error || 'Payout failed.'); return; }
+    alert('Sent $' + data.amount.toFixed(2) + ' via PayPal.');
     loadAll();
   }
 
