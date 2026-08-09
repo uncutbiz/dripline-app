@@ -214,6 +214,7 @@
       <a href="#vegas">Vegas Recovery</a>
       <a href="#membership">Membership</a>
       <a href="#partners">Partners</a>
+      <a href="#contact">Contact</a>
     </div>
     <a href="#book" class="navbtn">Book Now</a>
   </div>
@@ -566,6 +567,25 @@
   </div>
 </section>
 
+<section id="contact">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">We're here to help</div>
+      <h2>Contact us.</h2>
+      <p>Questions about a booking, a package, or anything else — call or text us directly.</p>
+    </div>
+    <div class="callout" style="grid-template-columns:1fr; text-align:center; padding:44px;">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:36px; font-weight:700; color:var(--accent); margin-bottom:8px;">
+          <a href="tel:+14802569639" style="color:inherit;">(480) 256-9639</a>
+        </div>
+        <p style="color:var(--muted); margin-bottom:22px;">Available for booking help, questions, and support.</p>
+        <a href="tel:+14802569639" class="btn-primary" style="display:inline-block; text-decoration:none;">📞 Call us now</a>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- VOICE ASSISTANT -->
 <button id="voiceFab" onclick="openVoiceAssistant()" aria-label="Ask DRIPLINE assistant">
   <span id="voiceFabIcon">🎙️</span>
@@ -610,6 +630,7 @@
 
 <footer>
   DRIPLINE · Mobile IV Hydration & Wellness Dispatch · Las Vegas · Miami · Nashville · Scottsdale · Austin · New York · Los Angeles
+  <br><a href="tel:+14802569639" style="color:var(--accent); text-decoration:none;">(480) 256-9639</a>
 </footer>
 
 <script>
@@ -858,11 +879,23 @@
   // ---------- HANDLE RETURN FROM STRIPE ----------
   // Stripe redirects back here with ?session_id=... on success, or to CANCEL_URL
   // (which you should set to include ?payment=canceled) if the customer backs out.
-  (function handleStripeReturn(){
+  (async function handleStripeReturn(){
     const params = new URLSearchParams(window.location.search);
-    if(params.get('session_id')){
+    const sessionId = params.get('session_id');
+
+    if(sessionId){
       showPayPopup(true, 'Payment successful', 'Your booking is confirmed — a nurse will be dispatched shortly. Check your email for a receipt.');
-      initTracker();
+
+      // Actively confirm + trigger dispatch ourselves, rather than only relying on
+      // Stripe's webhook (which requires separate dashboard configuration and can
+      // silently not be set up correctly). This guarantees dispatch fires either way.
+      try{
+        await fetch(BACKEND_URL + '/verify-session/' + sessionId);
+      } catch(err){
+        console.warn('Session verification call failed (webhook may still handle it):', err);
+      }
+
+      await initTracker();
     } else if(params.get('payment') === 'canceled'){
       showPayPopup(false, 'Payment not completed', 'Your card was not charged. You can try again whenever you\'re ready.');
     }
