@@ -42,6 +42,7 @@
   <input type="text" id="loginPin" placeholder="4-digit PIN" maxlength="4">
   <br><br>
   <button onclick="login()">Log in</button>
+  <div style="margin-top:12px;"><a href="#" onclick="forgotPin(); return false;" style="color:var(--muted); font-size:12px;">Forgot PIN?</a></div>
   <div id="err"></div>
 </div>
 
@@ -65,8 +66,24 @@
 
 <script>
   // Point this at your deployed backend — same URL as in dripline_app.html
-  const BACKEND_URL = "https://dripline-backend-1.onrender.com";
+  const BACKEND_URL = "https://your-dripline-backend.example.com";
   let TOKEN = "";
+
+  async function forgotPin(){
+    const phone = document.getElementById('loginPhone').value.trim();
+    if(!phone){ document.getElementById('err').textContent = 'Enter your phone number above first, then click "Forgot PIN?"'; return; }
+    try{
+      const resp = await fetch(BACKEND_URL + '/nurse-reset-pin', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ phone })
+      });
+      const data = await resp.json();
+      document.getElementById('err').style.color = 'var(--accent)';
+      document.getElementById('err').textContent = data.message;
+    } catch(e){
+      document.getElementById('err').textContent = 'Could not process that right now.';
+    }
+  }
 
   async function login(){
     const phone = document.getElementById('loginPhone').value.trim();
