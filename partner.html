@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DRIPLINE — Partner Dashboard</title>
+<style>
+  :root{
+    --bg:#0A0E17; --surface:#12182A; --surface-2:#1A2238;
+    --accent:#3FE8D1; --pink:#FF4D8D; --amber:#FFB347;
+    --text:#F5F7FA; --muted:#8A93A6; --border:rgba(255,255,255,0.08); --border-strong:rgba(255,255,255,0.16);
+  }
+  *{box-sizing:border-box;}
+  body{ background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif; margin:0; padding:24px;}
+  h1,h2{ font-family:'Space Grotesk',system-ui,sans-serif;}
+  .wrap{ max-width:640px; margin:0 auto;}
+  .gate{ max-width:340px; margin:100px auto; text-align:center;}
+  .gate input{ width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); margin:8px 0; font-size:14px;}
+  button{ background:var(--accent); color:#04120F; border:none; padding:11px 20px; border-radius:8px; font-weight:600; cursor:pointer; font-size:14px;}
+  .stat-cards{ display:flex; gap:14px; margin-bottom:28px; flex-wrap:wrap;}
+  .stat-card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px 22px; flex:1; min-width:140px;}
+  .stat-card .n{ font-size:24px; font-weight:700; font-family:'Space Grotesk',sans-serif; color:var(--accent);}
+  .stat-card .l{ font-size:12px; color:var(--muted); text-transform:uppercase;}
+  .code-box{ background:var(--surface-2); border:1px dashed var(--accent); border-radius:12px; padding:20px; text-align:center; margin-bottom:28px;}
+  .code-box .code{ font-family:'JetBrains Mono',monospace; font-size:28px; font-weight:700; color:var(--accent); letter-spacing:2px;}
+  table{ width:100%; border-collapse:collapse; font-size:13px;}
+  th{ text-align:left; color:var(--muted); text-transform:uppercase; font-size:11px; padding:8px; border-bottom:1px solid var(--border-strong);}
+  td{ padding:8px; border-bottom:1px solid var(--border);}
+  .paid-yes{ color:var(--accent);}
+  .paid-no{ color:var(--amber);}
+  #err{ color:var(--pink); font-size:13px; margin-top:8px;}
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <h1>Partner Dashboard</h1>
+  <p style="color:var(--muted); font-size:13px;">Log in with the email and password from your welcome email.</p>
+  <input type="email" id="loginEmail" placeholder="Email">
+  <input type="password" id="loginPassword" placeholder="Password">
+  <br><br>
+  <button onclick="login()">Log in</button>
+  <div id="err"></div>
+</div>
+
+<div class="wrap" id="dashboard" style="display:none;">
+  <h1 id="greeting">Hi</h1>
+
+  <div class="code-box">
+    <div style="font-size:12px; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Your referral code</div>
+    <div class="code" id="myCode">—</div>
+  </div>
+
+  <div class="stat-cards">
+    <div class="stat-card"><div class="n" id="statBookings">0</div><div class="l">Bookings sent</div></div>
+    <div class="stat-card"><div class="n" id="statOwed">$0</div><div class="l">Owed to you</div></div>
+    <div class="stat-card"><div class="n" id="statPaid">$0</div><div class="l">Paid out so far</div></div>
+  </div>
+
+  <h2>Recent bookings</h2>
+  <table>
+    <thead><tr><th>Date</th><th>City</th><th>Package</th><th>Fee</th><th>Status</th></tr></thead>
+    <tbody id="bookingRows"></tbody>
+  </table>
+</div>
+
+<script>
+  const BACKEND_URL = "https://dripline-backend-1.onrender.com";
+  let TOKEN = "";
+
+  async function login(){
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const err = document.getElementById('err');
+    if(!email || !password){ err.textContent = 'Enter both email and password.'; return; }
+
+    try{
+      const resp = await fetch(BACKEND_URL + '/partner-login', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ email, password })
+      });
+      const data = await resp.json();
+      if(!resp.ok) throw new Error(data.error || 'Login failed');
+
+      TOKEN = data.token;
+      document.getElementById('gate').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      document.getElementById('greeting').textContent = 'Hi, ' + data.partner.name;
+      loadStats();
+    } catch(e){
+      err.textContent = e.message;
+    }
+  }
+
+  async function loadStats(){
+    try{
+      const resp = await fetch(BACKEND_URL + '/partner/me', {
+        headers: { 'Authorization': 'Bearer ' + TOKEN }
+      });
+      const data = await resp.json();
+      if(!resp.ok) throw new Error(data.error || 'Could not load dashboard');
+
+      document.getElementById('myCode').textContent = data.partner.code;
+      document.getElementById('statBookings').textContent = data.bookingsSent;
+      document.getElementById('statOwed').textContent = '$' + data.totalOwed.toFixed(2);
+      document.getElementById('statPaid').textContent = '$' + data.totalPaidOut.toFixed(2);
+
+      const rows = document.getElementById('bookingRows');
+      if(data.recentBookings.length === 0){
+        rows.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">No bookings yet — share your code to start earning.</td></tr>';
+      } else {
+        rows.innerHTML = data.recentBookings.map(b => `
+          <tr>
+            <td>${new Date(b.createdAt).toLocaleDateString()}</td>
+            <td>${b.city}</td>
+            <td>${b.package}</td>
+            <td>$${b.feeOwed}</td>
+            <td class="${b.paid ? 'paid-yes' : 'paid-no'}">${b.paid ? 'Paid' : 'Pending'}</td>
+          </tr>
+        `).join('');
+      }
+    } catch(e){
+      document.getElementById('err').textContent = e.message;
+    }
+  }
+
+  setInterval(() => { if(TOKEN) loadStats(); }, 30000);
+</script>
+</body>
+</html>
