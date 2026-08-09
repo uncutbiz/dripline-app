@@ -56,7 +56,15 @@
     <div class="stat-card"><div class="n" id="statTotal">$0</div><div class="l">Today's revenue</div></div>
     <div class="stat-card"><div class="n" id="statCount">0</div><div class="l">Bookings today</div></div>
     <div class="stat-card"><div class="n" id="statNurses">0</div><div class="l">Active nurses</div></div>
+    <div class="stat-card" id="alertCard" style="display:none; border-color:var(--pink);"><div class="n" id="statAlerts" style="color:var(--pink);">0</div><div class="l">⚠ Needs attention</div></div>
   </div>
+
+  <section>
+    <h2>Revenue trend (last 14 days)</h2>
+    <div id="revenueChart" style="display:flex; align-items:flex-end; gap:6px; height:140px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px;">
+      <div style="color:var(--muted); font-size:13px;">Loading…</div>
+    </div>
+  </section>
 
   <section>
     <h2>Nurses</h2>
@@ -103,15 +111,26 @@
   </section>
 
   <section>
-    <h2>Bookings</h2>
+    <h2 style="display:flex; justify-content:space-between; align-items:center;">Bookings <button class="btn secondary" style="font-size:12px; padding:6px 12px;" onclick="exportCSV(lastBookings, 'bookings')">⬇ Export CSV</button></h2>
     <table>
       <thead><tr><th>When</th><th>Customer</th><th>Package</th><th>City</th><th>Total</th><th>Status</th><th>Nurse</th><th>Update</th></tr></thead>
       <tbody id="bookingRows"></tbody>
     </table>
   </section>
+
+  <section>
+    <h2 style="display:flex; justify-content:space-between; align-items:center;">Customers <button class="btn secondary" style="font-size:12px; padding:6px 12px;" onclick="exportCSV(lastCustomers, 'customers')">⬇ Export CSV</button></h2>
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Joined</th></tr></thead>
+      <tbody id="customerRows"></tbody>
+    </table>
+  </section>
 </div>
 
 <script>
+  let lastBookings = [];
+  let lastCustomers = [];
+
   // Point this at your deployed backend — same URL as in dripline_app.html
   const BACKEND_URL = "https://dripline-backend-1.onrender.com";
   let ADMIN_KEY = "";
@@ -193,6 +212,27 @@
       console.error('Partner applications section failed to load:', err);
       document.getElementById('applicationRows').innerHTML = '<tr><td colspan="8" style="color:var(--muted);">Partner applications feature not available yet — update server.js to enable it.</td></tr>';
     }
+
+    try{
+      const usersResp = await fetch(BACKEND_URL + '/admin/users', { headers: headers() });
+      if(!usersResp.ok) throw new Error('Customer list endpoint not available yet');
+      const { users } = await usersResp.json();
+      lastCustomers = users;
+      renderCustomers(users);
+    } catch(err){
+      console.error('Customers section failed to load:', err);
+      document.getElementById('customerRows').innerHTML = '<tr><td colspan="4" style="color:var(--muted);">Customer list feature not available yet — update server.js to enable it.</td></tr>';
+    }
+
+    try{
+      const histResp = await fetch(BACKEND_URL + '/admin/stats-history', { headers: headers() });
+      if(!histResp.ok) throw new Error('Stats history endpoint not available yet');
+      const { history } = await histResp.json();
+      renderRevenueChart(history);
+    } catch(err){
+      console.error('Revenue chart failed to load:', err);
+      document.getElementById('revenueChart').innerHTML = '<div style="color:var(--muted); font-size:13px;">Revenue trend not available yet — update server.js to enable it.</div>';
+    }
   }
 
   function renderNurses(nurses){
@@ -214,18 +254,28 @@
   }
 
   function renderBookings(bookings, nurses){
+    lastBookings = bookings;
     const rows = document.getElementById('bookingRows');
     rows.innerHTML = '';
+
+    const STALE_MINUTES = 15;
+    let alertCount = 0;
+
     bookings.forEach(b => {
       const nurse = nurses.find(n => n.id === b.nurseId);
+      const isStale = b.status === 'offered' && b.offeredAt &&
+        (Date.now() - new Date(b.offeredAt).getTime()) > STALE_MINUTES * 60 * 1000;
+      if(isStale) alertCount++;
+
       const tr = document.createElement('tr');
+      if(isStale) tr.style.background = 'rgba(255,77,141,0.06)';
       tr.innerHTML = `
         <td>${new Date(b.createdAt).toLocaleString()}</td>
         <td>${b.name}<br><span style="color:var(--muted); font-size:11px;">${b.email || ''} ${b.phone || ''}</span></td>
         <td>${b.package}</td>
         <td>${b.city}</td>
         <td>$${b.total}</td>
-        <td><span class="status ${b.status || 'pending'}">${b.status || 'pending'}</span></td>
+        <td><span class="status ${b.status || 'pending'}">${b.status || 'pending'}</span>${isStale ? ' <span style="color:var(--pink); font-size:11px;">⚠ no nurse yet</span>' : ''}</td>
         <td>${nurse ? nurse.name : '—'}</td>
         <td>
           <select onchange="updateStatus('${b.id}', this.value)">
@@ -238,6 +288,14 @@
       `;
       rows.appendChild(tr);
     });
+
+    const alertCard = document.getElementById('alertCard');
+    if(alertCount > 0){
+      document.getElementById('statAlerts').textContent = alertCount;
+      alertCard.style.display = 'block';
+    } else {
+      alertCard.style.display = 'none';
+    }
   }
 
   function renderApplications(apps){
@@ -288,6 +346,62 @@
     if(!confirm('Reject this application?')) return;
     await fetch(BACKEND_URL + '/partner-applications/' + id + '/reject', { method:'POST', headers: headers() });
     loadAll();
+  }
+
+  function renderCustomers(users){
+    const rows = document.getElementById('customerRows');
+    rows.innerHTML = '';
+    if(users.length === 0){
+      rows.innerHTML = '<tr><td colspan="4" style="color:var(--muted);">No registered customers yet — guest checkouts don\'t create an account.</td></tr>';
+      return;
+    }
+    users.forEach(u => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${u.name}</td>
+        <td>${u.email}</td>
+        <td>${u.phone || '—'}</td>
+        <td>${new Date(u.createdAt).toLocaleDateString()}</td>
+      `;
+      rows.appendChild(tr);
+    });
+  }
+
+  function renderRevenueChart(history){
+    const el = document.getElementById('revenueChart');
+    if(history.length === 0){
+      el.innerHTML = '<div style="color:var(--muted); font-size:13px;">No revenue history yet — this fills in day by day.</div>';
+      return;
+    }
+    const max = Math.max(...history.map(h => h.total), 1);
+    el.innerHTML = history.map(h => {
+      const pct = Math.max(4, (h.total / max) * 100);
+      const label = new Date(h.date + 'T00:00:00').toLocaleDateString(undefined, {month:'short', day:'numeric'});
+      return `
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;" title="${label}: $${h.total}">
+          <div style="font-size:10px; color:var(--muted); margin-bottom:4px;">$${h.total}</div>
+          <div style="width:100%; background:var(--accent); border-radius:4px 4px 0 0; height:${pct}%;"></div>
+          <div style="font-size:10px; color:var(--muted); margin-top:6px;">${label}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function exportCSV(data, filename){
+    if(!data || data.length === 0){ alert('Nothing to export yet.'); return; }
+    const headers = Object.keys(data[0]).filter(k => typeof data[0][k] !== 'object');
+    const rows = data.map(row => headers.map(h => {
+      const val = row[h] === null || row[h] === undefined ? '' : String(row[h]);
+      return '"' + val.replace(/"/g, '""') + '"';
+    }).join(','));
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename + '-' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function renderPartners(partners){
