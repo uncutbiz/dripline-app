@@ -40,6 +40,7 @@
   <input type="password" id="loginPassword" placeholder="Password">
   <br><br>
   <button onclick="login()">Log in</button>
+  <div style="margin-top:12px;"><a href="#" onclick="forgotPassword(); return false;" style="color:var(--muted); font-size:12px;">Forgot password?</a></div>
   <div id="err"></div>
 </div>
 
@@ -67,6 +68,22 @@
 <script>
   const BACKEND_URL = "https://dripline-backend-1.onrender.com";
   let TOKEN = "";
+
+  async function forgotPassword(){
+    const email = document.getElementById('loginEmail').value.trim();
+    if(!email){ document.getElementById('err').textContent = 'Enter your email above first, then click "Forgot password?"'; return; }
+    try{
+      const resp = await fetch(BACKEND_URL + '/partner-reset-password', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ email })
+      });
+      const data = await resp.json();
+      document.getElementById('err').style.color = 'var(--accent)';
+      document.getElementById('err').textContent = data.message;
+    } catch(e){
+      document.getElementById('err').textContent = 'Could not process that right now.';
+    }
+  }
 
   async function login(){
     const email = document.getElementById('loginEmail').value.trim();
