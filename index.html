@@ -214,6 +214,7 @@
       <a href="#vegas">Vegas Recovery</a>
       <a href="#membership">Membership</a>
       <a href="#partners">Partners</a>
+      <a href="#join-nurses">Nurses</a>
       <a href="#contact">Contact</a>
     </div>
     <a href="#book" class="navbtn">Book Now</a>
@@ -567,6 +568,76 @@
   </div>
 </section>
 
+<section id="join-nurses">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Licensed RNs · nursing agencies</div>
+      <h2>Join our provider network.</h2>
+      <p>Set your own schedule — browse open bookings and accept whatever fits your availability. Payout shown upfront before you accept.</p>
+    </div>
+
+    <div class="booker">
+      <div>
+        <div class="row2">
+          <div class="field">
+            <label>Full name</label>
+            <input type="text" id="naName" placeholder="Jordan RN">
+          </div>
+          <div class="field">
+            <label>Phone</label>
+            <input type="tel" id="naPhone" placeholder="(702) 555-0134">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="naEmail" placeholder="jordan@email.com">
+          </div>
+          <div class="field">
+            <label>City</label>
+            <select id="naCity">
+              <option>Las Vegas</option>
+              <option>Miami</option>
+              <option>Nashville</option>
+              <option>Scottsdale</option>
+              <option>Austin</option>
+              <option>New York</option>
+              <option>Los Angeles</option>
+            </select>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>Agency name (if applying on behalf of one)</label>
+            <input type="text" id="naAgency" placeholder="Optional">
+          </div>
+          <div class="field">
+            <label>Carrier (for free SMS offers)</label>
+            <select id="naCarrier">
+              <option value="">Select carrier</option>
+              <option value="att">AT&T</option>
+              <option value="verizon">Verizon</option>
+              <option value="tmobile">T-Mobile</option>
+              <option value="sprint">Sprint</option>
+              <option value="boost">Boost Mobile</option>
+              <option value="cricket">Cricket</option>
+              <option value="metropcs">Metro by T-Mobile</option>
+              <option value="uscellular">US Cellular</option>
+              <option value="googlefi">Google Fi</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>License info (state, number — for our verification, not stored publicly)</label>
+          <input type="text" id="naLicense" placeholder="e.g. NV RN #123456">
+        </div>
+        <button class="btn-primary" style="width:100%;" onclick="submitNurseApplication(this)">Apply to join</button>
+        <div class="confirm-box" id="naConfirmBox"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="contact">
   <div class="wrap">
     <div class="section-head">
@@ -672,6 +743,49 @@
     document.getElementById('fPackage').value = price;
     calcTotal();
     document.getElementById('book').scrollIntoView({behavior:'smooth'});
+  }
+
+  // ---------- NURSE APPLICATIONS ----------
+
+  async function submitNurseApplication(btn){
+    const name = document.getElementById('naName').value.trim();
+    const phone = document.getElementById('naPhone').value.trim();
+    const box = document.getElementById('naConfirmBox');
+
+    if(!name || !phone){
+      alert('Name and phone are required.');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+
+    const payload = {
+      name, phone,
+      email: document.getElementById('naEmail').value.trim(),
+      city: document.getElementById('naCity').value,
+      agencyName: document.getElementById('naAgency').value.trim(),
+      carrier: document.getElementById('naCarrier').value,
+      licenseInfo: document.getElementById('naLicense').value.trim(),
+    };
+
+    try{
+      const resp = await fetch(BACKEND_URL + '/nurse-applications', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if(!resp.ok) throw new Error('Submission failed');
+
+      box.classList.add('show');
+      box.textContent = 'Thanks, ' + name + ' — we\'ll review your license info and follow up by phone or email.';
+    } catch(err){
+      console.warn('Nurse application submission failed:', err);
+      box.classList.add('show');
+      box.textContent = 'Could not submit right now — please try again in a moment.';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Apply to join';
+    }
   }
 
   // ---------- PARTNER APPLICATIONS ----------
